@@ -1,0 +1,196 @@
+package database
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	log "github.com/sirupsen/logrus"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+
+	"github.com/unbeman/av-prac-task/internal/config"
+	"github.com/unbeman/av-prac-task/internal/model"
+)
+
+type pg struct {
+	conn *gorm.DB
+}
+
+// NewPGDatabase returns the initialized pg object that implements IDatabase interface.
+func NewPGDatabase(cfg config.PostgresConfig) (*pg, error) {
+	db := &pg{}
+	if err := db.connect(cfg.DSN); err != nil {
+		return nil, err
+	}
+	if err := db.migrate(); err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
+// connect initialize database session connection instance with dsn.
+func (p *pg) connect(dsn string) error {
+	conn, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true}) //todo: use custom logger based on logrus
+	if err != nil {
+		return err
+	}
+	p.conn = conn
+	return nil
+}
+
+// migrate prepares database.
+func (p *pg) migrate() error {
+	err := p.conn.AutoMigrate(
+		&model.User{},
+		&model.Segment{},
+		&model.UserSegment{},
+	)
+	if err != nil {
+		return err
+	}
+
+	err = p.conn.SetupJoinTable(&model.User{}, "Segments", &model.UserSegment{})
+	if err != nil {
+		return err
+	}
+
+	err = p.conn.SetupJoinTable(&model.Segment{}, "Users", &model.UserSegment{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Ping checks database connection.
+func (p *pg) Ping(ctx context.Context) error {
+	sqlDB, err := p.conn.DB()
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrDB, err)
+	}
+	if err = sqlDB.PingContext(ctx); err != nil {
+		return fmt.Errorf("%w: %v", ErrDB, err)
+	}
+	return nil
+}
+
+// CreateSegment inserts new segment with given unique slug and additional info if not exists.
+func (p *pg) CreateSegment(ctx context.Context, segment *model.Segment) (*model.Segment, error) {
+	result := p.conn.WithContext(ctx).Create(segment)
+
+	log.Info(errors.Is(result.Error, gorm.ErrDuplicatedKey))
+
+	if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+		return nil, fmt.Errorf("segment with slug (%s) %w", segment.Slug, ErrAlreadyExists)
+	}
+	if result.Error != nil {
+		return nil, fmt.Errorf("%w: %v", ErrDB, result.Error)
+	}
+	return segment, nil
+}
+
+// DeleteSegment hard deletes segment by slug.
+func (p *pg) DeleteSegment(ctx context.Context, segment *model.Segment) error {
+	result := p.conn.WithContext(ctx).Delete(segment, "slug = ?", segment.Slug)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("segment with slug (%s) %w", segment.Slug, ErrNotFound)
+	}
+	if result.Error != nil {
+		return fmt.Errorf("%w: %v", ErrDB, result.Error)
+	}
+	return nil
+}
+
+// GetSegment returns segment with all users in it.
+func (p *pg) GetSegment(ctx context.Context, segment *model.Segment) (*model.Segment, error) {
+	result := p.conn.WithContext(ctx).Preload("Users").First(segment, "slug = ?", segment.Slug)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("segment with slug (%s) %w", segment.Slug, ErrNotFound)
+	}
+	if result.Error != nil {
+		return nil, fmt.Errorf("%w: %v", ErrDB, result.Error)
+	}
+	return segment, nil
+}
+
+// GetSegments returns segments by given slugs.
+func (p *pg) GetSegments(ctx context.Context, slugs []model.Slug) ([]model.Segment, error) {
+	return p.getSegments(ctx, p.conn, slugs)
+}
+
+// getSegments returns segments by given slugs.
+func (p *pg) getSegments(ctx context.Context, tx *gorm.DB, slugs []model.Slug) ([]model.Segment, error) {
+	var segments []model.Segment
+	result := tx.WithContext(ctx).Find(&segments, "slug IN ?", slugs)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("segments %w", ErrNotFound)
+	}
+	if result.Error != nil {
+		return nil, fmt.Errorf("%w: %v", ErrDB, result.Error)
+	}
+	return segments, nil
+}
+
+// CreateDeleteUserSegments insert and delete relation by specified segments (represented by slugs) for given user.
+func (p *pg) CreateDeleteUserSegments(ctx context.Context, user *model.User, toInSegments []model.Slug, toDelSegments []model.Slug) error {
+	var insertSegments []model.Segment
+	var deleteSegments []model.Segment
+	err := p.conn.Transaction(func(tx *gorm.DB) error { //todo: check gorm's tx errors
+		var txErr error
+		insertSegments, txErr = p.getSegments(ctx, tx, toInSegments)
+		if txErr != nil {
+			return txErr
+		}
+
+		deleteSegments, txErr = p.getSegments(ctx, tx, toDelSegments)
+		if txErr != nil {
+			return txErr
+		}
+
+		txErr = p.insertUserSegments(ctx, tx, user, insertSegments)
+		if txErr != nil {
+			return txErr
+		}
+
+		txErr = p.deleteUserSegments(ctx, tx, user, deleteSegments)
+		if txErr != nil {
+			return txErr
+		}
+		return nil
+	})
+
+	return err
+}
+
+// insertUserSegments connects user with given segments.
+func (p *pg) insertUserSegments(ctx context.Context, tx *gorm.DB, user *model.User, segments []model.Segment) error {
+	log.Info(user.ID)
+	err := tx.WithContext(ctx).Model(user).Association("Segments").Append(segments)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	return nil
+}
+
+// deleteUserSegments removes user relation to given segments.
+func (p *pg) deleteUserSegments(ctx context.Context, tx *gorm.DB, user *model.User, segments []model.Segment) error {
+	err := tx.WithContext(ctx).Model(user).Association("Segments").Delete(segments)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	return nil
+}
+
+// GetUserSegments returns user with related segments.
+func (p *pg) GetUserSegments(ctx context.Context, user *model.User) (*model.User, error) {
+	result := p.conn.WithContext(ctx).Preload("Segments").First(user, "ID = ?", user.ID)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("user with ID (%d) %w", user.ID, ErrNotFound)
+	}
+	if result.Error != nil {
+		return nil, fmt.Errorf("%w: %v", ErrDB, result.Error)
+	}
+	return user, nil
+}
