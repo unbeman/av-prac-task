@@ -18,9 +18,8 @@ func (s *Slug) Bind(r *http.Request) error {
 
 type Segment struct {
 	Base
-	Slug      Slug     `json:"slug" gorm:"uniqueIndex"`
-	Selection *float64 `json:"selection,omitempty" ` // 0 < user selection <= 1
-	Users     []*User  `json:"users,omitempty" gorm:"many2many:user_segments;"`
+	Slug  Slug    `json:"slug" gorm:"uniqueIndex"`
+	Users []*User `json:"users,omitempty" gorm:"many2many:user_segments;"`
 }
 
 func (s *Segment) Render(w http.ResponseWriter, r *http.Request) error {

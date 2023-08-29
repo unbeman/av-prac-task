@@ -12,7 +12,6 @@ type UserSegment struct {
 	User      User `gorm:"foreignKey:UserID;references:ID"`
 	SegmentID uint
 	Segment   Segment `gorm:"foreignKey:SegmentID;references:ID"`
-	TTL       time.Time
 }
 
 type UserSegmentsInput struct {

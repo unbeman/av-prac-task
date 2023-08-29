@@ -10,6 +10,7 @@ import (
 
 type IDatabase interface {
 	CreateSegment(ctx context.Context, segment *model.Segment) (*model.Segment, error)
+	AddSegmentToRandomUsers(ctx context.Context, segment *model.Segment, selection float64) error
 	DeleteSegment(ctx context.Context, segment *model.Segment) error
 	GetSegment(ctx context.Context, segment *model.Segment) (*model.Segment, error)
 	GetSegments(ctx context.Context, slugs []model.Slug) ([]model.Segment, error)

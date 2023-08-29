@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -32,20 +31,12 @@ func setupHandler(t *testing.T, ctrl *gomock.Controller, setupDB func(db *mock_d
 	return h
 }
 
-func generateSegment() model.Segment {
-	userSel := rand.Float64()
-	return model.Segment{
-		Slug:      "GOOD-NAME",
-		Selection: &userSel,
-	}
-}
-
 func getSelection(n float64) *float64 {
 	return &n
 }
 
 func TestHTTPHandlers_CreateSegment(t *testing.T) {
-	segment := generateSegment()
+	segment := model.Segment{Slug: "SEGMENT-SLUG"}
 	tests := []struct {
 		name          string
 		input         model.CreateSegment
@@ -54,11 +45,14 @@ func TestHTTPHandlers_CreateSegment(t *testing.T) {
 	}{
 		{
 			name:  "OK",
-			input: model.CreateSegment{Slug: segment.Slug, Selection: segment.Selection},
+			input: model.CreateSegment{Slug: segment.Slug, Selection: getSelection(0.5)},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					CreateSegment(gomock.Any(), gomock.Any()).
 					Return(&segment, nil)
+				db.EXPECT().
+					AddSegmentToRandomUsers(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
@@ -66,7 +60,7 @@ func TestHTTPHandlers_CreateSegment(t *testing.T) {
 		},
 		{
 			name:  "Internal Error",
-			input: model.CreateSegment{Slug: segment.Slug, Selection: segment.Selection},
+			input: model.CreateSegment{Slug: segment.Slug},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					CreateSegment(gomock.Any(), gomock.Any()).
@@ -78,7 +72,7 @@ func TestHTTPHandlers_CreateSegment(t *testing.T) {
 		},
 		{
 			name:  "Segment already exist",
-			input: model.CreateSegment{Slug: segment.Slug, Selection: segment.Selection},
+			input: model.CreateSegment{Slug: segment.Slug},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					CreateSegment(gomock.Any(), gomock.Any()).
@@ -102,7 +96,7 @@ func TestHTTPHandlers_CreateSegment(t *testing.T) {
 		},
 		{
 			name:  "Empty slug",
-			input: model.CreateSegment{Slug: "", Selection: segment.Selection},
+			input: model.CreateSegment{Slug: ""},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					CreateSegment(gomock.Any(), gomock.Any()).
@@ -123,7 +117,6 @@ func TestHTTPHandlers_CreateSegment(t *testing.T) {
 
 			data, err := json.Marshal(tt.input)
 			require.NoError(t, err)
-			t.Log(string(data))
 
 			request, err := http.NewRequest(http.MethodPost, "/api/v1/segment", bytes.NewBuffer(data))
 			require.NoError(t, err)
@@ -138,7 +131,8 @@ func TestHTTPHandlers_CreateSegment(t *testing.T) {
 }
 
 func TestHTTPHandlers_DeleteSegment(t *testing.T) {
-	segment := generateSegment()
+	segment := model.Segment{Slug: "SEGMENT-SLUG"}
+
 	tests := []struct {
 		name          string
 		input         model.CreateSegment

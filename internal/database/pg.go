@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"time"
+
 	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"time"
 
 	"github.com/unbeman/av-prac-task/internal/config"
 	"github.com/unbeman/av-prac-task/internal/model"
@@ -76,12 +78,17 @@ func (p *pg) Ping(ctx context.Context) error {
 	return nil
 }
 
-// CreateSegment inserts new segment with given unique slug and additional info if not exists.
-func (p *pg) CreateSegment(ctx context.Context, segment *model.Segment) (*model.Segment, error) {
-	result := p.conn.WithContext(ctx).Create(segment)
+func (p *pg) getUsersCount(ctx context.Context) (int64, error) {
+	var count int64
+	result := p.conn.WithContext(ctx).Model(&model.User{}).Count(&count)
+	if result.Error != nil {
+		return count, result.Error
+	}
+	return count, nil
+}
 
-	log.Info(errors.Is(result.Error, gorm.ErrDuplicatedKey))
-
+func (p *pg) createSegment(ctx context.Context, tx *gorm.DB, segment *model.Segment) (*model.Segment, error) {
+	result := tx.WithContext(ctx).Create(segment)
 	if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
 		return nil, fmt.Errorf("segment with slug (%s) %w", segment.Slug, ErrAlreadyExists)
 	}
@@ -89,6 +96,11 @@ func (p *pg) CreateSegment(ctx context.Context, segment *model.Segment) (*model.
 		return nil, fmt.Errorf("%w: %v", ErrDB, result.Error)
 	}
 	return segment, nil
+}
+
+// CreateSegment inserts new segment with given unique slug if not exists.
+func (p *pg) CreateSegment(ctx context.Context, segment *model.Segment) (*model.Segment, error) {
+	return p.createSegment(ctx, p.conn, segment)
 }
 
 // DeleteSegment hard deletes segment by slug.
@@ -211,4 +223,50 @@ func (p *pg) GetUserSegmentsHistory(ctx context.Context, user *model.User, from 
 		return nil, fmt.Errorf("%w: %v", ErrDB, result.Error)
 	}
 	return user, nil
+}
+
+func (p *pg) getRandomUsers(ctx context.Context, count int) ([]*model.User, error) {
+	var users []*model.User
+	result := p.conn.WithContext(ctx).
+		Find(&users).
+		Order("random()").
+		Limit(count)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return users, nil
+}
+
+func (p *pg) addSegmentToUsers(ctx context.Context, segment model.Segment, users []*model.User) error {
+	for _, user := range users {
+		if err := p.insertUserSegments(ctx, p.conn, user, []model.Segment{segment}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *pg) AddSegmentToRandomUsers(ctx context.Context, segment *model.Segment, selection float64) error {
+	count, err := p.getUsersCount(ctx)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		log.Info("AddSegmentToRandomUsers: no users in database to add segment")
+		return nil
+	}
+
+	selectionCount := int(math.Ceil(float64(count) * selection)) //todo: wrap
+
+	users, err := p.getRandomUsers(ctx, selectionCount)
+	if err != nil {
+		return err
+	}
+
+	err = p.addSegmentToUsers(ctx, *segment, users)
+	if err != nil {
+		return err
+	}
+	return nil
 }

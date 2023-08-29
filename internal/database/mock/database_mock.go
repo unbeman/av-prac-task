@@ -36,6 +36,20 @@ func (m *MockIDatabase) EXPECT() *MockIDatabaseMockRecorder {
 	return m.recorder
 }
 
+// AddSegmentToRandomUsers mocks base method.
+func (m *MockIDatabase) AddSegmentToRandomUsers(arg0 context.Context, arg1 *model.Segment, arg2 float64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddSegmentToRandomUsers", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddSegmentToRandomUsers indicates an expected call of AddSegmentToRandomUsers.
+func (mr *MockIDatabaseMockRecorder) AddSegmentToRandomUsers(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddSegmentToRandomUsers", reflect.TypeOf((*MockIDatabase)(nil).AddSegmentToRandomUsers), arg0, arg1, arg2)
+}
+
 // CreateDeleteUserSegments mocks base method.
 func (m *MockIDatabase) CreateDeleteUserSegments(arg0 context.Context, arg1 *model.User, arg2, arg3 []model.Slug) error {
 	m.ctrl.T.Helper()
