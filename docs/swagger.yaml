@@ -30,6 +30,15 @@ definitions:
           $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.User'
         type: array
     type: object
+  github_com_unbeman_av-prac-task_internal_model.SegmentInput:
+    properties:
+      slug:
+        type: string
+    type: object
+  github_com_unbeman_av-prac-task_internal_model.Segments:
+    items:
+      $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.Segment'
+    type: array
   github_com_unbeman_av-prac-task_internal_model.User:
     properties:
       createdAt:
@@ -41,9 +50,12 @@ definitions:
       name:
         type: string
       segments:
-        items:
-          $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.Segment'
-        type: array
+        $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.Segments'
+    type: object
+  github_com_unbeman_av-prac-task_internal_model.UserInput:
+    properties:
+      user_id:
+        type: integer
     type: object
   github_com_unbeman_av-prac-task_internal_model.UserSegmentsInput:
     properties:
@@ -74,7 +86,7 @@ paths:
         name: slug
         required: true
         schema:
-          $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.CreateSegment'
+          $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.SegmentInput'
       produces:
       - application/json
       responses:
@@ -131,7 +143,7 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.User'
+          $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.UserInput'
       produces:
       - application/json
       responses:

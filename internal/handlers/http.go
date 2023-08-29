@@ -81,7 +81,7 @@ func (h HTTPHandlers) CreateSegment(writer http.ResponseWriter, request *http.Re
 // @Summary Deletes segment with given slug
 // @Accept json
 // @Produce json
-// @Param slug body model.CreateSegment true "Segment input"
+// @Param slug body model.SegmentInput true "Segment input"
 // @Success 200
 // @Failure 400 {object} model.OutputError
 // @Failure 404 {object} model.OutputError
@@ -154,7 +154,7 @@ func (h HTTPHandlers) UpdateUserSegments(writer http.ResponseWriter, request *ht
 // @Summary Get user's active segments
 // @Accept json
 // @Produce json
-// @Param input body model.User true "User"
+// @Param input body model.UserInput true "User"
 // @Success 200 {object} model.Segments
 // @Failure 400 {object} model.OutputError
 // @Failure 404 {object} model.OutputError

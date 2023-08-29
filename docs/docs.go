@@ -75,7 +75,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.CreateSegment"
+                            "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.SegmentInput"
                         }
                     }
                 ],
@@ -120,7 +120,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.User"
+                            "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.UserInput"
                         }
                     }
                 ],
@@ -246,6 +246,20 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_unbeman_av-prac-task_internal_model.SegmentInput": {
+            "type": "object",
+            "properties": {
+                "slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_unbeman_av-prac-task_internal_model.Segments": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.Segment"
+            }
+        },
         "github_com_unbeman_av-prac-task_internal_model.User": {
             "type": "object",
             "properties": {
@@ -262,10 +276,15 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "segments": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.Segment"
-                    }
+                    "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.Segments"
+                }
+            }
+        },
+        "github_com_unbeman_av-prac-task_internal_model.UserInput": {
+            "type": "object",
+            "properties": {
+                "user_id": {
+                    "type": "integer"
                 }
             }
         },
