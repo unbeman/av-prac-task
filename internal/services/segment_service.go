@@ -15,8 +15,9 @@ func NewSegmentService(db database.IDatabase) (*SegmentService, error) {
 	return &SegmentService{db: db}, nil
 }
 
-func (s SegmentService) CreateSegment(ctx context.Context, input *model.SegmentInput) (*model.Segment, error) {
+func (s SegmentService) CreateSegment(ctx context.Context, input *model.CreateSegment) (*model.Segment, error) {
 	segment := model.Segment{Slug: input.Slug, Selection: input.Selection}
+	//todo: go addSelectedUserToSegments
 	return s.db.CreateSegment(ctx, &segment)
 }
 

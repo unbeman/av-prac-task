@@ -8,10 +8,14 @@ type User struct {
 	Segments Segments `json:"segments,omitempty" gorm:"many2many:user_segments;"`
 }
 
-func (u *User) Render(w http.ResponseWriter, r *http.Request) error {
+type UserInput struct {
+	UserID uint `json:"user_id"`
+}
+
+func (u *UserInput) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (u *User) Bind(r *http.Request) error {
+func (u *UserInput) Bind(r *http.Request) error {
 	return nil
 }

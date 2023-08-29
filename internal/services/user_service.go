@@ -19,11 +19,18 @@ func (s UserService) UpdateUserSegments(ctx context.Context, input *model.UserSe
 	user := model.User{}
 	user.ID = input.UserID
 
-	//todo: what to do if segments to add intersect to delete? should i check it before operations?
 	return s.db.CreateDeleteUserSegments(ctx, &user, input.SegmentsToAdd, input.SegmentsToDelete)
 }
 
-func (s UserService) GetActiveUserSegments(ctx context.Context, user *model.User) (*model.User, error) {
-	user, err := s.db.GetUserSegments(ctx, user)
-	return user, err
+func (s UserService) GetUserWithActiveSegments(ctx context.Context, input *model.UserInput) (*model.User, error) {
+	user := &model.User{}
+	user.ID = input.UserID
+
+	return s.db.GetUserActiveSegments(ctx, user)
+}
+
+func (s UserService) GetUserWithSegmentsHistory(ctx context.Context, input *model.UserSegmentsHistoryInput) (*model.User, error) {
+	user := &model.User{}
+	user.ID = input.UserID
+	return s.db.GetUserSegmentsHistory(ctx, user, input.FromDate, input.ToDate)
 }

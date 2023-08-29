@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -31,5 +32,39 @@ func (u *UserSegmentsInput) Bind(r *http.Request) error {
 			return err
 		}
 	}
+
+	uniqueAddSegs := make(map[Slug]bool)
+	for _, segment := range u.SegmentsToAdd {
+		if _, ok := uniqueAddSegs[segment]; !ok {
+			uniqueAddSegs[segment] = true
+		} else {
+			return fmt.Errorf("%w: dublicating the segment to add", ErrInvalidSlug)
+		}
+
+	}
+
+	uniqueDelSegs := make(map[Slug]bool)
+	for _, segment := range u.SegmentsToDelete {
+		if _, ok := uniqueDelSegs[segment]; !ok {
+			uniqueDelSegs[segment] = true
+		} else {
+			return fmt.Errorf("%w: dublicating the segment to delete", ErrInvalidSlug)
+		}
+		if _, ok := uniqueAddSegs[segment]; ok {
+			return fmt.Errorf("%w: segment to add intersects segment for delete", ErrInvalidSlug)
+		}
+	}
+
+	return nil
+}
+
+type UserSegmentsHistoryInput struct {
+	UserID   uint      `json:"user_id"`
+	FromDate time.Time `json:"from_date"` //todo: mb use timestamp
+	ToDate   time.Time `json:"to_date"`
+}
+
+func (u *UserSegmentsHistoryInput) Bind(r *http.Request) error {
+	//todo: check dates with format
 	return nil
 }

@@ -7,6 +7,7 @@ package mock_database
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	gomock "github.com/golang/mock/gomock"
 	model "github.com/unbeman/av-prac-task/internal/model"
@@ -108,17 +109,32 @@ func (mr *MockIDatabaseMockRecorder) GetSegments(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSegments", reflect.TypeOf((*MockIDatabase)(nil).GetSegments), arg0, arg1)
 }
 
-// GetUserSegments mocks base method.
-func (m *MockIDatabase) GetUserSegments(arg0 context.Context, arg1 *model.User) (*model.User, error) {
+// GetUserActiveSegments mocks base method.
+func (m *MockIDatabase) GetUserActiveSegments(arg0 context.Context, arg1 *model.User) (*model.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserSegments", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetUserActiveSegments", arg0, arg1)
 	ret0, _ := ret[0].(*model.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetUserSegments indicates an expected call of GetUserSegments.
-func (mr *MockIDatabaseMockRecorder) GetUserSegments(arg0, arg1 interface{}) *gomock.Call {
+// GetUserActiveSegments indicates an expected call of GetUserActiveSegments.
+func (mr *MockIDatabaseMockRecorder) GetUserActiveSegments(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserSegments", reflect.TypeOf((*MockIDatabase)(nil).GetUserSegments), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserActiveSegments", reflect.TypeOf((*MockIDatabase)(nil).GetUserActiveSegments), arg0, arg1)
+}
+
+// GetUserSegmentsHistory mocks base method.
+func (m *MockIDatabase) GetUserSegmentsHistory(arg0 context.Context, arg1 *model.User, arg2, arg3 time.Time) (*model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserSegmentsHistory", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(*model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserSegmentsHistory indicates an expected call of GetUserSegmentsHistory.
+func (mr *MockIDatabaseMockRecorder) GetUserSegmentsHistory(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserSegmentsHistory", reflect.TypeOf((*MockIDatabase)(nil).GetUserSegmentsHistory), arg0, arg1, arg2, arg3)
 }

@@ -12,6 +12,10 @@ import (
 	"github.com/unbeman/av-prac-task/internal/logging"
 )
 
+// @title Dynamic user segments server
+// @version 1.0
+// @description Avito homework.
+// @BasePath /api/v1
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 

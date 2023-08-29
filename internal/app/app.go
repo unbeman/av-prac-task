@@ -9,8 +9,8 @@ import (
 
 	"github.com/unbeman/av-prac-task/internal/config"
 	"github.com/unbeman/av-prac-task/internal/database"
+	"github.com/unbeman/av-prac-task/internal/handlers"
 	"github.com/unbeman/av-prac-task/internal/services"
-	"github.com/unbeman/av-prac-task/internal/transport"
 )
 
 type SegApp struct {
@@ -33,7 +33,7 @@ func GetSegApp(cfg config.AppConfig) (*SegApp, error) {
 		return nil, fmt.Errorf("coudnt get segment service: %w", err)
 	}
 
-	handlers, err := transport.GetHandlers(uServ, sServ)
+	handlers, err := handlers.GetHandlers(uServ, sServ)
 	if err != nil {
 		return nil, fmt.Errorf("coudnt get handlers: %w", err)
 	}

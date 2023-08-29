@@ -8,7 +8,7 @@ import (
 type Slug string
 
 func (s *Slug) Bind(r *http.Request) error {
-	if *s == "" { //todo: add slug validator
+	if *s == "" {
 		return ErrInvalidSlug
 	}
 
@@ -33,17 +33,28 @@ func (s Segments) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-type SegmentInput struct {
+type CreateSegment struct {
 	Slug      Slug     `json:"slug"`
 	Selection *float64 `json:"selection,omitempty"`
 }
 
-func (s *SegmentInput) Bind(r *http.Request) error {
+func (s *CreateSegment) Bind(r *http.Request) error {
 	if err := s.Slug.Bind(r); err != nil { //no idea why it doesn't work without explicit call
 		return err
 	}
 	if s.Selection != nil && (*s.Selection > 1.0 || *s.Selection < 0.0) {
 		return ErrInvalidSelection
+	}
+	return nil
+}
+
+type SegmentInput struct {
+	Slug Slug `json:"slug"`
+}
+
+func (s *SegmentInput) Bind(r *http.Request) error {
+	if err := s.Slug.Bind(r); err != nil { //no idea why it doesn't work without explicit call
+		return err
 	}
 	return nil
 }

@@ -1,4 +1,4 @@
-package transport
+package handlers
 
 import (
 	"bytes"
@@ -48,13 +48,13 @@ func TestHTTPHandlers_CreateSegment(t *testing.T) {
 	segment := generateSegment()
 	tests := []struct {
 		name          string
-		input         model.SegmentInput
+		input         model.CreateSegment
 		buildStubs    func(db *mock_database.MockIDatabase)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name:  "OK",
-			input: model.SegmentInput{Slug: segment.Slug, Selection: segment.Selection},
+			input: model.CreateSegment{Slug: segment.Slug, Selection: segment.Selection},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					CreateSegment(gomock.Any(), gomock.Any()).
@@ -66,7 +66,7 @@ func TestHTTPHandlers_CreateSegment(t *testing.T) {
 		},
 		{
 			name:  "Internal Error",
-			input: model.SegmentInput{Slug: segment.Slug, Selection: segment.Selection},
+			input: model.CreateSegment{Slug: segment.Slug, Selection: segment.Selection},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					CreateSegment(gomock.Any(), gomock.Any()).
@@ -78,7 +78,7 @@ func TestHTTPHandlers_CreateSegment(t *testing.T) {
 		},
 		{
 			name:  "Segment already exist",
-			input: model.SegmentInput{Slug: segment.Slug, Selection: segment.Selection},
+			input: model.CreateSegment{Slug: segment.Slug, Selection: segment.Selection},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					CreateSegment(gomock.Any(), gomock.Any()).
@@ -90,7 +90,7 @@ func TestHTTPHandlers_CreateSegment(t *testing.T) {
 		},
 		{
 			name:  "Invalid selection value",
-			input: model.SegmentInput{Slug: segment.Slug, Selection: getSelection(1.25)},
+			input: model.CreateSegment{Slug: segment.Slug, Selection: getSelection(1.25)},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					CreateSegment(gomock.Any(), gomock.Any()).
@@ -102,7 +102,7 @@ func TestHTTPHandlers_CreateSegment(t *testing.T) {
 		},
 		{
 			name:  "Empty slug",
-			input: model.SegmentInput{Slug: "", Selection: segment.Selection},
+			input: model.CreateSegment{Slug: "", Selection: segment.Selection},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					CreateSegment(gomock.Any(), gomock.Any()).
@@ -141,13 +141,13 @@ func TestHTTPHandlers_DeleteSegment(t *testing.T) {
 	segment := generateSegment()
 	tests := []struct {
 		name          string
-		input         model.SegmentInput
+		input         model.CreateSegment
 		buildStubs    func(db *mock_database.MockIDatabase)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name:  "OK",
-			input: model.SegmentInput{Slug: segment.Slug},
+			input: model.CreateSegment{Slug: segment.Slug},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					DeleteSegment(gomock.Any(), gomock.Any()).
@@ -159,7 +159,7 @@ func TestHTTPHandlers_DeleteSegment(t *testing.T) {
 		},
 		{
 			name:  "Internal Error",
-			input: model.SegmentInput{Slug: segment.Slug},
+			input: model.CreateSegment{Slug: segment.Slug},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					DeleteSegment(gomock.Any(), gomock.Any()).
@@ -171,7 +171,7 @@ func TestHTTPHandlers_DeleteSegment(t *testing.T) {
 		},
 		{
 			name:  "Segment not found",
-			input: model.SegmentInput{Slug: segment.Slug},
+			input: model.CreateSegment{Slug: segment.Slug},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					DeleteSegment(gomock.Any(), gomock.Any()).
@@ -183,7 +183,7 @@ func TestHTTPHandlers_DeleteSegment(t *testing.T) {
 		},
 		{
 			name:  "Empty slug",
-			input: model.SegmentInput{Slug: ""},
+			input: model.CreateSegment{Slug: ""},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					DeleteSegment(gomock.Any(), gomock.Any()).
@@ -345,7 +345,7 @@ func TestHTTPHandlers_GetActiveUserSegments(t *testing.T) {
 			input: user,
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
-					GetUserSegments(gomock.Any(), &user). //todo: fill
+					GetUserActiveSegments(gomock.Any(), gomock.Any()). //todo: fill
 					Return(&user, nil)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -357,7 +357,7 @@ func TestHTTPHandlers_GetActiveUserSegments(t *testing.T) {
 			input: user,
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
-					GetUserSegments(gomock.Any(), gomock.Any()). //todo: fill
+					GetUserActiveSegments(gomock.Any(), gomock.Any()). //todo: fill
 					Return(nil, database.ErrDB)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -369,7 +369,7 @@ func TestHTTPHandlers_GetActiveUserSegments(t *testing.T) {
 			input: user,
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
-					GetUserSegments(gomock.Any(), gomock.Any()).
+					GetUserActiveSegments(gomock.Any(), gomock.Any()).
 					Return(nil, database.ErrNotFound)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {

@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"time"
 
 	"github.com/unbeman/av-prac-task/internal/config"
 	"github.com/unbeman/av-prac-task/internal/model"
@@ -31,6 +32,7 @@ func NewPGDatabase(cfg config.PostgresConfig) (*pg, error) {
 
 // connect initialize database session connection instance with dsn.
 func (p *pg) connect(dsn string) error {
+	log.Info("PG DSN: ", dsn)
 	conn, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true}) //todo: use custom logger based on logrus
 	if err != nil {
 		return err
@@ -183,9 +185,25 @@ func (p *pg) deleteUserSegments(ctx context.Context, tx *gorm.DB, user *model.Us
 	return nil
 }
 
-// GetUserSegments returns user with related segments.
-func (p *pg) GetUserSegments(ctx context.Context, user *model.User) (*model.User, error) {
+// GetUserActiveSegments returns user with related segments.
+func (p *pg) GetUserActiveSegments(ctx context.Context, user *model.User) (*model.User, error) {
 	result := p.conn.WithContext(ctx).Preload("Segments").First(user, "ID = ?", user.ID)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("user with ID (%d) %w", user.ID, ErrNotFound)
+	}
+	if result.Error != nil {
+		return nil, fmt.Errorf("%w: %v", ErrDB, result.Error)
+	}
+	return user, nil
+}
+
+// GetUserSegmentsHistory returns history of user's segments changes for the specified time interval.
+func (p *pg) GetUserSegmentsHistory(ctx context.Context, user *model.User, from time.Time, to time.Time) (*model.User, error) {
+	result := p.conn.WithContext(ctx).
+		Preload("Segments",
+			"created_at > ? AND created_at < ? AND (deleted_at = NULL OR (deleted_at > ? AND deleted_at < ?))",
+			from, to, from, to).
+		First(user, "ID = ?", user.ID)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("user with ID (%d) %w", user.ID, ErrNotFound)
 	}
