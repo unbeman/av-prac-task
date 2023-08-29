@@ -3,7 +3,7 @@ package config
 import "github.com/caarlos0/env/v8"
 
 const (
-	AddressDefault  = "127.0.0.1:8080"
+	AddressDefault  = "0.0.0.0:8080"
 	LogLevelDefault = "info"
 	DSNDefault      = "postgresql://postgres:1211@localhost:5432/dus"
 )

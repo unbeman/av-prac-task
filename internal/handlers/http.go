@@ -59,7 +59,7 @@ func (h HTTPHandlers) CreateSegment(writer http.ResponseWriter, request *http.Re
 		return
 	}
 
-	render.Status(request, http.StatusOK)
+	render.Status(request, http.StatusOK) //StatusAccepted ?
 }
 
 func (h HTTPHandlers) DeleteSegment(writer http.ResponseWriter, request *http.Request) {
