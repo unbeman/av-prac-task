@@ -2,19 +2,31 @@ package services
 
 import (
 	"context"
+	"encoding/csv"
+	"errors"
+	"fmt"
 	log "github.com/sirupsen/logrus"
+	"os"
 	"strconv"
+	"time"
 
 	"github.com/unbeman/av-prac-task/internal/database"
 	"github.com/unbeman/av-prac-task/internal/model"
 )
 
 type UserService struct {
-	db database.IDatabase
+	db      database.IDatabase
+	fileDir string
 }
 
-func NewUserService(db database.IDatabase) (*UserService, error) {
-	return &UserService{db: db}, nil
+func NewUserService(db database.IDatabase, fileDir string) (*UserService, error) {
+	if _, err := os.Stat(fileDir); errors.Is(err, os.ErrNotExist) {
+		err = os.Mkdir(fileDir, os.ModePerm)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &UserService{db: db, fileDir: fileDir}, nil
 }
 
 func (s UserService) UpdateUserSegments(ctx context.Context, input *model.UserSegmentsInput) error {
@@ -41,34 +53,78 @@ func (s UserService) GetUserActiveSegments(ctx context.Context, input *model.Use
 	return slugs, nil
 }
 
-func (s UserService) GetUserSegmentsHistory(ctx context.Context, input *model.UserSegmentsHistoryInput) ([][]string, error) {
+// todo: async load and gen file
+func (s UserService) GenerateUserSegmentsHistoryFile(ctx context.Context, input *model.UserSegmentsHistoryInput) (string, error) {
 	user := &model.User{}
 	user.ID = input.UserID
 
-	us, err := s.db.GetUserSegmentsHistory(ctx, user, input.FromDate, input.ToDate)
-	if err != nil {
-		return nil, err
+	filename := fmt.Sprintf(
+		"user-%d_%s_%s.csv",
+		user.ID,
+		input.FromDate.Format(time.DateOnly),
+		input.ToDate.Format(time.DateOnly),
+	)
+
+	filePath := fmt.Sprintf("%s/%s", s.fileDir, filename)
+
+	if _, err := os.Stat(filePath); !errors.Is(err, os.ErrNotExist) {
+		//todo: check file, rewrite it if new records exists
+		return filename, err
 	}
 
-	history := make([][]string, 0, len(us)+1)
+	userSegments, err := s.db.GetUserSegmentsHistory(ctx, user, input.FromDate, input.ToDate)
+	if err != nil {
+		return "", err
+	}
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
+			log.Error("GenerateUserSegmentsHistoryFile: ", err)
+		}
+	}(file)
+
+	csvFile := csv.NewWriter(file)
 
 	head := []string{"user_id", "segment_slug", "operation", "date"}
+	if err = csvFile.Write(head); err != nil {
+		return "", err
+	}
 
-	history = append(history, head)
-
-	for _, segment := range us {
+	for _, segment := range userSegments {
 		if segment.CreatedAt.After(input.FromDate) && segment.CreatedAt.Before(input.ToDate) {
 			row := []string{strconv.Itoa(int(user.ID)), string(segment.Segment.Slug), "add", segment.CreatedAt.String()}
-			history = append(history, row)
+
+			if err = csvFile.Write(row); err != nil {
+				return "", err
+			}
 		}
 
 		if segment.DeletedAt.Valid &&
 			segment.DeletedAt.Time.After(input.FromDate) &&
 			segment.DeletedAt.Time.Before(input.ToDate) {
 			row := []string{strconv.Itoa(int(user.ID)), string(segment.Segment.Slug), "delete", segment.DeletedAt.Time.String()}
-			history = append(history, row)
+
+			if err = csvFile.Write(row); err != nil {
+				return "", err
+			}
 		}
 	}
-	log.Info(history)
-	return history, nil
+
+	csvFile.Flush()
+
+	return filename, nil
+}
+
+func (s UserService) DownloadUserSegmentsHistory(filename string) (string, error) {
+	filePath := fmt.Sprintf("%s/%s", s.fileDir, filename)
+	if _, err := os.Stat(filePath); errors.Is(err, os.ErrNotExist) {
+		return "", ErrFileNotFound
+	}
+
+	return filePath, nil
 }

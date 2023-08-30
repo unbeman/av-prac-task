@@ -19,7 +19,7 @@ type UserSegment struct {
 }
 
 type UserSegmentsInput struct {
-	UserID           uint64 `json:"user_id" swaggerignore:"true"`
+	UserID           uint64 `json:"-" swaggerignore:"true"`
 	SegmentsToAdd    []Slug `json:"segments_to_add"`
 	SegmentsToDelete []Slug `json:"segments_to_delete"`
 }
@@ -94,5 +94,13 @@ func (u *UserSegmentsHistoryInput) FromURI(r *http.Request) error {
 	if err != nil {
 		return ErrInvalidDateFormat
 	}
+	return nil
+}
+
+type UserSegmentsHistoryOutput struct {
+	Link string `json:"link"`
+}
+
+func (u UserSegmentsHistoryOutput) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }

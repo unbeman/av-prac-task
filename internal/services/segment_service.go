@@ -40,9 +40,3 @@ func (s SegmentService) DeleteSegment(ctx context.Context, input *model.SegmentI
 	segment := model.Segment{Slug: input.Slug}
 	return s.db.DeleteSegment(ctx, &segment)
 }
-
-// todo: remove
-func (s SegmentService) GetSegment(ctx context.Context, input *model.SegmentInput) (*model.Segment, error) {
-	segment := model.Segment{Slug: input.Slug}
-	return s.db.GetSegment(ctx, &segment)
-}

@@ -109,10 +109,10 @@ func (mr *MockIDatabaseMockRecorder) GetSegment(arg0, arg1 interface{}) *gomock.
 }
 
 // GetSegments mocks base method.
-func (m *MockIDatabase) GetSegments(arg0 context.Context, arg1 []model.Slug) ([]model.Segment, error) {
+func (m *MockIDatabase) GetSegments(arg0 context.Context, arg1 []model.Slug) ([]*model.Segment, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSegments", arg0, arg1)
-	ret0, _ := ret[0].([]model.Segment)
+	ret0, _ := ret[0].([]*model.Segment)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -139,10 +139,10 @@ func (mr *MockIDatabaseMockRecorder) GetUserActiveSegments(arg0, arg1 interface{
 }
 
 // GetUserSegmentsHistory mocks base method.
-func (m *MockIDatabase) GetUserSegmentsHistory(arg0 context.Context, arg1 *model.User, arg2, arg3 time.Time) (*model.User, error) {
+func (m *MockIDatabase) GetUserSegmentsHistory(arg0 context.Context, arg1 *model.User, arg2, arg3 time.Time) ([]model.UserSegment, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserSegmentsHistory", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(*model.User)
+	ret0, _ := ret[0].([]model.UserSegment)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

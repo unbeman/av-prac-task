@@ -3,9 +3,10 @@ package config
 import "github.com/caarlos0/env/v8"
 
 const (
-	AddressDefault  = "0.0.0.0:8080"
-	LogLevelDefault = "info"
-	DSNDefault      = "postgresql://postgres:1211@localhost:5432/dus"
+	AddressDefault       = "0.0.0.0:8080"
+	LogLevelDefault      = "info"
+	DSNDefault           = "postgresql://postgres:1211@localhost:5432/dus"
+	FileDirectoryDefault = "store"
 )
 
 type LoggerConfig struct {
@@ -32,16 +33,18 @@ func (cfg *AppConfig) parseEnv() error {
 }
 
 type AppConfig struct {
-	DB      PostgresConfig
-	Logger  LoggerConfig
-	Address string `env:"RUN_ADDRESS"`
+	DB            PostgresConfig
+	Logger        LoggerConfig
+	Address       string `env:"RUN_ADDRESS"`
+	FileDirectory string `env:"FILE_DIRECTORY"`
 }
 
 func GetAppConfig() (AppConfig, error) {
 	cfg := AppConfig{
-		DB:      NewPostgresConfig(),
-		Logger:  NewLoggerConfig(),
-		Address: AddressDefault,
+		DB:            NewPostgresConfig(),
+		Logger:        NewLoggerConfig(),
+		Address:       AddressDefault,
+		FileDirectory: FileDirectoryDefault,
 	}
 
 	if err := cfg.parseEnv(); err != nil {

@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"net/http"
@@ -22,7 +23,7 @@ func setupHandler(t *testing.T, ctrl *gomock.Controller, setupDB func(db *mock_d
 	segmentServ, err := services.NewSegmentService(database)
 	require.NoError(t, err)
 
-	userServ, err := services.NewUserService(database)
+	userServ, err := services.NewUserService(database, t.TempDir())
 	require.NoError(t, err)
 
 	h, err := GetHandlers(userServ, segmentServ)
@@ -135,13 +136,13 @@ func TestHTTPHandlers_DeleteSegment(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		input         model.CreateSegmentInput
+		input         model.SegmentInput
 		buildStubs    func(db *mock_database.MockIDatabase)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name:  "OK",
-			input: model.CreateSegmentInput{Slug: segment.Slug},
+			input: model.SegmentInput{Slug: segment.Slug},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					DeleteSegment(gomock.Any(), gomock.Any()).
@@ -153,7 +154,7 @@ func TestHTTPHandlers_DeleteSegment(t *testing.T) {
 		},
 		{
 			name:  "Internal Error",
-			input: model.CreateSegmentInput{Slug: segment.Slug},
+			input: model.SegmentInput{Slug: segment.Slug},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					DeleteSegment(gomock.Any(), gomock.Any()).
@@ -165,14 +166,14 @@ func TestHTTPHandlers_DeleteSegment(t *testing.T) {
 		},
 		{
 			name:  "Empty slug",
-			input: model.CreateSegmentInput{Slug: ""},
+			input: model.SegmentInput{Slug: ""},
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
 					DeleteSegment(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code)
+				require.Equal(t, http.StatusMethodNotAllowed, recorder.Code)
 			},
 		},
 	}
@@ -184,15 +185,12 @@ func TestHTTPHandlers_DeleteSegment(t *testing.T) {
 			handler := setupHandler(t, ctrl, tt.buildStubs)
 			recorder := httptest.NewRecorder()
 
-			data, err := json.Marshal(tt.input)
+			request, err := http.NewRequest(
+				http.MethodDelete,
+				fmt.Sprintf("/api/v1/segment/%v", tt.input.Slug),
+				nil,
+			)
 			require.NoError(t, err)
-			t.Log(string(data))
-
-			request, err := http.NewRequest(http.MethodDelete, "/api/v1/segment", bytes.NewBuffer(data))
-			require.NoError(t, err)
-			request.Header.Set("Content-Type", "application/json")
-
-			//handler.DeleteSegment(recorder, request)
 
 			handler.ServeHTTP(recorder, request)
 			tt.checkResponse(t, recorder)
@@ -299,7 +297,11 @@ func TestHTTPHandlers_UpdateUserSegments(t *testing.T) {
 			require.NoError(t, err)
 			t.Log(string(data))
 
-			request, err := http.NewRequest(http.MethodPost, "/api/v1/user/segments", bytes.NewBuffer(data))
+			request, err := http.NewRequest(
+				http.MethodPost,
+				fmt.Sprintf("/api/v1/segments/user/%v", tt.input.UserID),
+				bytes.NewBuffer(data),
+			)
 			require.NoError(t, err)
 			request.Header.Set("Content-Type", "application/json")
 
@@ -314,7 +316,7 @@ func TestHTTPHandlers_GetActiveUserSegments(t *testing.T) {
 	segB := model.Segment{Slug: "SEGMENT-B"}
 	var user model.User
 	user.ID = 1
-	user.Segments = []*model.Segment{&segA, &segB}
+	user.Segments = []model.Segment{segA, segB}
 
 	tests := []struct {
 		name          string
@@ -367,11 +369,11 @@ func TestHTTPHandlers_GetActiveUserSegments(t *testing.T) {
 			handler := setupHandler(t, ctrl, tt.buildStubs)
 			recorder := httptest.NewRecorder()
 
-			data, err := json.Marshal(tt.input)
-			require.NoError(t, err)
-			t.Log(string(data))
-
-			request, err := http.NewRequest(http.MethodGet, "/api/v1/user/segments", bytes.NewBuffer(data))
+			request, err := http.NewRequest(
+				http.MethodGet,
+				fmt.Sprintf("/api/v1/segments/user/%d", tt.input.ID),
+				nil,
+			)
 			require.NoError(t, err)
 			request.Header.Set("Content-Type", "application/json")
 

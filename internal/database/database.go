@@ -8,6 +8,7 @@ import (
 	"github.com/unbeman/av-prac-task/internal/model"
 )
 
+// IDatabase describes the storage usage.
 type IDatabase interface {
 	CreateSegment(ctx context.Context, segment *model.Segment) (*model.Segment, error)
 	AddSegmentToRandomUsers(ctx context.Context, segment *model.Segment, selection float64) error
@@ -19,6 +20,7 @@ type IDatabase interface {
 	GetUserSegmentsHistory(ctx context.Context, user *model.User, from time.Time, to time.Time) ([]model.UserSegment, error)
 }
 
+// GetDatabase returns IDatabase implementation.
 func GetDatabase(cfg config.PostgresConfig) (IDatabase, error) {
 	return NewPGDatabase(cfg)
 }

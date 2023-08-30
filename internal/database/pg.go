@@ -67,18 +67,7 @@ func (p *pg) migrate() error {
 	return nil
 }
 
-// Ping checks database connection.
-func (p *pg) Ping(ctx context.Context) error {
-	sqlDB, err := p.conn.DB()
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrDB, err)
-	}
-	if err = sqlDB.PingContext(ctx); err != nil {
-		return fmt.Errorf("%w: %v", ErrDB, err)
-	}
-	return nil
-}
-
+// getUsersCount returns count of user.
 func (p *pg) getUsersCount(ctx context.Context) (int64, error) {
 	var count int64
 	result := p.conn.WithContext(ctx).Model(&model.User{}).Count(&count)
@@ -88,6 +77,7 @@ func (p *pg) getUsersCount(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
+// createSegment returns new saved model.Segment.
 func (p *pg) createSegment(ctx context.Context, tx *gorm.DB, segment *model.Segment) (*model.Segment, error) {
 	result := tx.WithContext(ctx).Create(segment)
 	if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
@@ -104,7 +94,7 @@ func (p *pg) CreateSegment(ctx context.Context, segment *model.Segment) (*model.
 	return p.createSegment(ctx, p.conn, segment)
 }
 
-// DeleteSegment hard deletes segment by slug.
+// DeleteSegment soft deletes segment by slug.
 func (p *pg) DeleteSegment(ctx context.Context, segment *model.Segment) error {
 	result := p.conn.WithContext(ctx).Delete(segment, "slug = ?", segment.Slug)
 	if result.Error != nil {
@@ -191,7 +181,8 @@ func (p *pg) insertUserSegments(ctx context.Context, tx *gorm.DB, user *model.Us
 	return nil
 }
 
-// deleteUserSegments removes user relation to given segments.
+// deleteUserSegments soft deletes user relation to given segments,
+// just updates deleted_at column.
 func (p *pg) deleteUserSegments(ctx context.Context, tx *gorm.DB, user *model.User, segments []*model.Segment) error {
 	err := tx.WithContext(ctx).Model(user).Association("Segments").Delete(segments)
 	if err != nil {
@@ -212,15 +203,16 @@ func (p *pg) GetUserActiveSegments(ctx context.Context, user *model.User) (*mode
 	return user, nil
 }
 
-// GetUserSegmentsHistory returns history of user's segments changes for the specified time interval.
+// GetUserSegmentsHistory returns user relation to segments for the specified time interval.
 func (p *pg) GetUserSegmentsHistory(ctx context.Context, user *model.User, from time.Time, to time.Time) ([]model.UserSegment, error) {
 	var userSegments []model.UserSegment
 
 	result := p.conn.WithContext(ctx).Unscoped().Preload("Segment").Model(&userSegments).
 		Find(&userSegments, "user_segments.user_id = ? AND "+
 			"((user_segments.created_at >= ? AND user_segments.created_at <= ?)"+
-			"OR (user_segments.deleted_at = null "+
-			"OR (user_segments.deleted_at >= ? AND user_segments.deleted_at <= ?)))", user.ID, from, to, from, to)
+			" OR (user_segments.deleted_at = null "+
+			" OR (user_segments.deleted_at >= ? AND user_segments.deleted_at <= ?)))"+
+			" ORDER BY user_segments.created_at ASC", user.ID, from, to, from, to)
 	if result.Error != nil {
 		log.Error(result)
 		return nil, fmt.Errorf("%w: %v", ErrDB, result.Error)
@@ -231,6 +223,7 @@ func (p *pg) GetUserSegmentsHistory(ctx context.Context, user *model.User, from 
 	return userSegments, nil
 }
 
+// getRandomUsers returns random users rows.
 func (p *pg) getRandomUsers(ctx context.Context, count int) ([]*model.User, error) {
 	var users []*model.User
 	result := p.conn.WithContext(ctx).
@@ -243,6 +236,7 @@ func (p *pg) getRandomUsers(ctx context.Context, count int) ([]*model.User, erro
 	return users, nil
 }
 
+// addSegmentToUsers adds relation for given segment and users.
 func (p *pg) addSegmentToUsers(ctx context.Context, segment model.Segment, users []*model.User) error {
 	for _, user := range users {
 		if err := p.insertUserSegments(ctx, p.conn, user, []*model.Segment{&segment}); err != nil {
@@ -252,6 +246,7 @@ func (p *pg) addSegmentToUsers(ctx context.Context, segment model.Segment, users
 	return nil
 }
 
+// AddSegmentToRandomUsers adds relation for given segment to random users depending on selection percent.
 func (p *pg) AddSegmentToRandomUsers(ctx context.Context, segment *model.Segment, selection float64) error {
 	count, err := p.getUsersCount(ctx)
 	if err != nil {

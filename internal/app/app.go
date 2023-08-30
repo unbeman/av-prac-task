@@ -23,7 +23,7 @@ func GetSegApp(cfg config.AppConfig) (*SegApp, error) {
 		return nil, fmt.Errorf("coudnt get database: %w", err)
 	}
 
-	uServ, err := services.NewUserService(db)
+	uServ, err := services.NewUserService(db, cfg.FileDirectory)
 	if err != nil {
 		return nil, fmt.Errorf("coudnt get user service: %w", err)
 	}

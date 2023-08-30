@@ -96,6 +96,46 @@
                 }
             }
         },
+        "/api/v1/segments/user/history/{filename}": {
+            "get": {
+                "produces": [
+                    "text/csv"
+                ],
+                "summary": "Get user's segments history csv file",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "file name",
+                        "name": "filename",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/segments/user/{user_id}": {
             "get": {
                 "consumes": [
@@ -203,7 +243,7 @@
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Get user's segments action history",
+                "summary": "Get user's segments history link to download",
                 "parameters": [
                     {
                         "type": "integer",
