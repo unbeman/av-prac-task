@@ -7,14 +7,15 @@ import (
 )
 
 var (
-	ErrInvalidSlug      = errors.New("invalid slug")
-	ErrInvalidSelection = errors.New("invalid user selection value")
-	ErrInvalidUserID    = errors.New("invalid userID")
+	ErrInvalidSlug       = errors.New("invalid slug")
+	ErrInvalidSelection  = errors.New("invalid user selection value")
+	ErrInvalidUserID     = errors.New("invalid userID")
+	ErrInvalidDateFormat = errors.New("invalid date format")
 )
 
 type OutputError struct {
 	HttpCode int    `json:"-"`
-	Message  string `json:"message"`
+	Message  string `json:"message" example:"error message"`
 }
 
 func (o OutputError) Render(w http.ResponseWriter, r *http.Request) error {

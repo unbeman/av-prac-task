@@ -28,11 +28,11 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "description": "Segment input",
-                        "name": "slug",
+                        "name": "segment",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.CreateSegment"
+                            "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.CreateSegmentInput"
                         }
                     }
                 ],
@@ -59,7 +59,9 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
+            }
+        },
+        "/api/v1/segment/{slug}": {
             "delete": {
                 "consumes": [
                     "application/json"
@@ -70,13 +72,11 @@ const docTemplate = `{
                 "summary": "Deletes segment with given slug",
                 "parameters": [
                     {
-                        "description": "Segment input",
+                        "type": "string",
+                        "description": "slug",
                         "name": "slug",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.SegmentInput"
-                        }
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -104,7 +104,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/user/segments": {
+        "/api/v1/segments/user/{user_id}": {
             "get": {
                 "consumes": [
                     "application/json"
@@ -115,13 +115,11 @@ const docTemplate = `{
                 "summary": "Get user's active segments",
                 "parameters": [
                     {
-                        "description": "User",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.UserInput"
-                        }
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -130,7 +128,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.Segment"
+                                "type": "string"
                             }
                         }
                     },
@@ -163,6 +161,13 @@ const docTemplate = `{
                 ],
                 "summary": "Updates user's segments",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User id",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "User segments input",
                         "name": "input",
@@ -197,17 +202,76 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/segments/user/{user_id}/csv": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get user's segments action history",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "From Date",
+                        "name": "from",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "To Date",
+                        "name": "to",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "github_com_unbeman_av-prac-task_internal_model.CreateSegment": {
+        "github_com_unbeman_av-prac-task_internal_model.CreateSegmentInput": {
             "type": "object",
             "properties": {
                 "selection": {
-                    "type": "number"
+                    "type": "number",
+                    "example": 0.2
                 },
                 "slug": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "AVITO_VOICE_MESSAGES"
                 }
             }
         },
@@ -215,76 +279,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "message": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_unbeman_av-prac-task_internal_model.Segment": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "deletedAt": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "selection": {
-                    "description": "0 \u003c user selection \u003c= 1",
-                    "type": "number"
-                },
-                "slug": {
-                    "type": "string"
-                },
-                "users": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.User"
-                    }
-                }
-            }
-        },
-        "github_com_unbeman_av-prac-task_internal_model.SegmentInput": {
-            "type": "object",
-            "properties": {
-                "slug": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_unbeman_av-prac-task_internal_model.Segments": {
-            "type": "array",
-            "items": {
-                "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.Segment"
-            }
-        },
-        "github_com_unbeman_av-prac-task_internal_model.User": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "deletedAt": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "segments": {
-                    "$ref": "#/definitions/github_com_unbeman_av-prac-task_internal_model.Segments"
-                }
-            }
-        },
-        "github_com_unbeman_av-prac-task_internal_model.UserInput": {
-            "type": "object",
-            "properties": {
-                "user_id": {
-                    "type": "integer"
+                    "type": "string",
+                    "example": "error message"
                 }
             }
         },
@@ -302,9 +298,6 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
-                },
-                "user_id": {
-                    "type": "integer"
                 }
             }
         }
@@ -315,7 +308,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "",
-	BasePath:         "/api/v1",
+	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Dynamic user segments server",
 	Description:      "Avito homework.",

@@ -1,61 +1,19 @@
-basePath: /api/v1
+basePath: /
 definitions:
-  github_com_unbeman_av-prac-task_internal_model.CreateSegment:
+  github_com_unbeman_av-prac-task_internal_model.CreateSegmentInput:
     properties:
       selection:
+        example: 0.2
         type: number
       slug:
+        example: AVITO_VOICE_MESSAGES
         type: string
     type: object
   github_com_unbeman_av-prac-task_internal_model.OutputError:
     properties:
       message:
+        example: error message
         type: string
-    type: object
-  github_com_unbeman_av-prac-task_internal_model.Segment:
-    properties:
-      createdAt:
-        type: string
-      deletedAt:
-        type: string
-      id:
-        type: integer
-      selection:
-        description: 0 < user selection <= 1
-        type: number
-      slug:
-        type: string
-      users:
-        items:
-          $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.User'
-        type: array
-    type: object
-  github_com_unbeman_av-prac-task_internal_model.SegmentInput:
-    properties:
-      slug:
-        type: string
-    type: object
-  github_com_unbeman_av-prac-task_internal_model.Segments:
-    items:
-      $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.Segment'
-    type: array
-  github_com_unbeman_av-prac-task_internal_model.User:
-    properties:
-      createdAt:
-        type: string
-      deletedAt:
-        type: string
-      id:
-        type: integer
-      name:
-        type: string
-      segments:
-        $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.Segments'
-    type: object
-  github_com_unbeman_av-prac-task_internal_model.UserInput:
-    properties:
-      user_id:
-        type: integer
     type: object
   github_com_unbeman_av-prac-task_internal_model.UserSegmentsInput:
     properties:
@@ -67,8 +25,6 @@ definitions:
         items:
           type: string
         type: array
-      user_id:
-        type: integer
     type: object
 info:
   contact: {}
@@ -77,44 +33,16 @@ info:
   version: "1.0"
 paths:
   /api/v1/segment:
-    delete:
-      consumes:
-      - application/json
-      parameters:
-      - description: Segment input
-        in: body
-        name: slug
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.SegmentInput'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
-      summary: Deletes segment with given slug
     post:
       consumes:
       - application/json
       parameters:
       - description: Segment input
         in: body
-        name: slug
+        name: segment
         required: true
         schema:
-          $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.CreateSegment'
+          $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.CreateSegmentInput'
       produces:
       - application/json
       responses:
@@ -133,17 +61,44 @@ paths:
           schema:
             $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
       summary: Creates new segment with given slug
-  /api/v1/user/segments:
+  /api/v1/segment/{slug}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+      summary: Deletes segment with given slug
+  /api/v1/segments/user/{user_id}:
     get:
       consumes:
       - application/json
       parameters:
-      - description: User
-        in: body
-        name: input
+      - description: User ID
+        in: path
+        name: user_id
         required: true
-        schema:
-          $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.UserInput'
+        type: integer
       produces:
       - application/json
       responses:
@@ -151,7 +106,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.Segment'
+              type: string
             type: array
         "400":
           description: Bad Request
@@ -170,6 +125,11 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: User id
+        in: path
+        name: user_id
+        required: true
+        type: integer
       - description: User segments input
         in: body
         name: input
@@ -194,4 +154,42 @@ paths:
           schema:
             $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
       summary: Updates user's segments
+  /api/v1/segments/user/{user_id}/csv:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: From Date
+        in: query
+        name: from
+        required: true
+        type: string
+      - description: To Date
+        in: query
+        name: to
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+      summary: Get user's segments action history
 swagger: "2.0"

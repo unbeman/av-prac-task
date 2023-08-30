@@ -4,14 +4,12 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	httpSwagger "github.com/swaggo/http-swagger/v2"
-	"net/http"
-	"strconv"
-
 	logger "github.com/chi-middleware/logrus-logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	log "github.com/sirupsen/logrus"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
+	"net/http"
 
 	_ "github.com/unbeman/av-prac-task/docs"
 	"github.com/unbeman/av-prac-task/internal/database"
@@ -34,16 +32,16 @@ func GetHandlers(userService *services.UserService, segmentService *services.Seg
 	h.Use(logger.Logger("router", log.New()))
 	h.Get("/swagger/*", httpSwagger.Handler())
 	h.Route("/api/v1/", func(router chi.Router) {
-		router.Route("/user", func(r chi.Router) {
-			r.Get("/segments", h.GetActiveUserSegments)
-			r.Get("/segments/csv", h.GetUserSegmentsHistory)
-			r.Post("/segments", h.UpdateUserSegments)
+		router.Route("/segments/user", func(r chi.Router) {
+			r.Get("/{user_id}", h.GetActiveUserSegments)
+			r.Get("/{user_id}/csv", h.GetUserSegmentsHistory)
+			r.Post("/{user_id}", h.UpdateUserSegments)
 		})
 
 		router.Route("/segment", func(r chi.Router) {
 			r.Post("/", h.CreateSegment)
-			r.Delete("/", h.DeleteSegment)
-			r.Get("/", h.GetSegment)
+			r.Delete("/{slug}", h.DeleteSegment)
+			r.Get("/{slug}", h.GetSegment)
 		})
 	})
 	return h, nil
@@ -53,14 +51,14 @@ func GetHandlers(userService *services.UserService, segmentService *services.Seg
 // @Summary Creates new segment with given slug
 // @Accept json
 // @Produce json
-// @Param slug body model.CreateSegment true "Segment input"
+// @Param segment body model.CreateSegmentInput true "Segment input"
 // @Success 200
 // @Failure 400 {object} model.OutputError
 // @Failure 409 {object} model.OutputError
 // @Failure 500 {object} model.OutputError
 // @Router /api/v1/segment [post]
 func (h HTTPHandlers) CreateSegment(writer http.ResponseWriter, request *http.Request) {
-	input := &model.CreateSegment{}
+	input := &model.CreateSegmentInput{}
 	err := render.Bind(request, input)
 	if err != nil {
 		log.Info(err)
@@ -81,17 +79,18 @@ func (h HTTPHandlers) CreateSegment(writer http.ResponseWriter, request *http.Re
 // @Summary Deletes segment with given slug
 // @Accept json
 // @Produce json
-// @Param slug body model.SegmentInput true "Segment input"
+// @Param slug path string true "slug"
 // @Success 200
 // @Failure 400 {object} model.OutputError
 // @Failure 404 {object} model.OutputError
 // @Failure 500 {object} model.OutputError
-// @Router /api/v1/segment [delete]
+// @Router /api/v1/segment/{slug} [delete]
 func (h HTTPHandlers) DeleteSegment(writer http.ResponseWriter, request *http.Request) {
 	segment := &model.SegmentInput{}
-	err := render.Bind(request, segment)
+
+	err := segment.FromURI(request)
 	if err != nil {
-		h.processError(writer, request, fmt.Errorf("%w: %v", ErrInvalidRequest, err))
+		h.processError(writer, request, fmt.Errorf("%w: %s", ErrInvalidRequest, err))
 		return
 	}
 
@@ -107,7 +106,8 @@ func (h HTTPHandlers) DeleteSegment(writer http.ResponseWriter, request *http.Re
 // todo: remove
 func (h HTTPHandlers) GetSegment(writer http.ResponseWriter, request *http.Request) {
 	input := &model.SegmentInput{}
-	err := render.Bind(request, input)
+
+	err := input.FromURI(request)
 	if err != nil {
 		h.processError(writer, request, fmt.Errorf("%w: %v", ErrInvalidRequest, err))
 		return
@@ -127,14 +127,16 @@ func (h HTTPHandlers) GetSegment(writer http.ResponseWriter, request *http.Reque
 // @Summary Updates user's segments
 // @Accept json
 // @Produce json
+// @Param user_id path uint true "User id"
 // @Param input body model.UserSegmentsInput true "User segments input"
 // @Success 200
 // @Failure 400 {object} model.OutputError
 // @Failure 404 {object} model.OutputError
 // @Failure 500 {object} model.OutputError
-// @Router /api/v1/user/segments [post]
+// @Router /api/v1/segments/user/{user_id} [post]
 func (h HTTPHandlers) UpdateUserSegments(writer http.ResponseWriter, request *http.Request) {
 	input := &model.UserSegmentsInput{}
+
 	err := render.Bind(request, input)
 	if err != nil {
 		h.processError(writer, request, fmt.Errorf("%w: %v", ErrInvalidRequest, err))
@@ -154,63 +156,59 @@ func (h HTTPHandlers) UpdateUserSegments(writer http.ResponseWriter, request *ht
 // @Summary Get user's active segments
 // @Accept json
 // @Produce json
-// @Param input body model.UserInput true "User"
-// @Success 200 {object} model.Segments
+// @Param user_id path uint true "User ID"
+// @Success 200 {object} model.Slugs
 // @Failure 400 {object} model.OutputError
 // @Failure 404 {object} model.OutputError
 // @Failure 500 {object} model.OutputError
-// @Router /api/v1/user/segments [get]
+// @Router /api/v1/segments/user/{user_id} [get]
 func (h HTTPHandlers) GetActiveUserSegments(writer http.ResponseWriter, request *http.Request) {
 	input := &model.UserInput{}
-	err := render.Bind(request, input)
+
+	err := input.FromURI(request)
 	if err != nil {
-		h.processError(writer, request, fmt.Errorf("%w: %v", ErrInvalidRequest, err))
+		h.processError(writer, request, fmt.Errorf("%w: %s", ErrInvalidRequest, err))
 		return
 	}
 
-	user, err := h.userService.GetUserWithActiveSegments(request.Context(), input)
+	segments, err := h.userService.GetUserActiveSegments(request.Context(), input)
 	if err != nil {
 		h.processError(writer, request, err)
 		return
 	}
 
 	render.Status(request, http.StatusOK)
-	render.Render(writer, request, user.Segments)
+	render.Render(writer, request, segments)
 }
 
-// todo: desc
+// GetUserSegmentsHistory godoc
+// @Summary Get user's segments action history
+// @Accept json
+// @Produce json
+// @Param user_id path uint true "User ID"
+// @Param from	query string true "From Date"
+// @Param to	query string true "To Date"
+// @Success 200
+// @Failure 400 {object} model.OutputError
+// @Failure 404 {object} model.OutputError
+// @Failure 500 {object} model.OutputError
+// @Router /api/v1/segments/user/{user_id}/csv [get]
 func (h HTTPHandlers) GetUserSegmentsHistory(writer http.ResponseWriter, request *http.Request) {
 	input := &model.UserSegmentsHistoryInput{}
-	err := render.Bind(request, input)
+	log.Info("WE ARE IN GetUserSegmentsHistory")
+	err := input.FromURI(request)
 	if err != nil {
-		h.processError(writer, request, fmt.Errorf("%w: %v", ErrInvalidRequest, err))
+		h.processError(writer, request, fmt.Errorf("%w: %s", ErrInvalidRequest, err))
 		return
 	}
 
 	//todo: go generateHist
 	//todo: return file link to hist + status accepted
 
-	user, err := h.userService.GetUserWithSegmentsHistory(request.Context(), input)
+	history, err := h.userService.GetUserSegmentsHistory(request.Context(), input)
 	if err != nil {
 		h.processError(writer, request, err)
 		return
-	}
-
-	history := make([][]string, 0, len(user.Segments)+1)
-
-	head := []string{"user_id", "segment_slug", "operation", "date"}
-
-	history = append(history, head)
-
-	for _, s := range user.Segments {
-		operation := "add"
-		date := s.CreatedAt
-		if s.DeletedAt != nil {
-			operation = "delete"
-			date = *s.DeletedAt
-		}
-		row := []string{strconv.Itoa(int(user.ID)), string(s.Slug), operation, date.String()}
-		history = append(history, row)
 	}
 
 	hw := csv.NewWriter(writer)

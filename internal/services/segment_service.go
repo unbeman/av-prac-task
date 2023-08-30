@@ -15,7 +15,7 @@ func NewSegmentService(db database.IDatabase) (*SegmentService, error) {
 	return &SegmentService{db: db}, nil
 }
 
-func (s SegmentService) CreateSegment(ctx context.Context, input *model.CreateSegment) (*model.Segment, error) {
+func (s SegmentService) CreateSegment(ctx context.Context, input *model.CreateSegmentInput) (*model.Segment, error) {
 	var err error
 	segment := &model.Segment{Slug: input.Slug}
 

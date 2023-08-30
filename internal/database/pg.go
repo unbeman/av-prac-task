@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"gorm.io/gorm/logger"
 	"math"
 	"time"
 
@@ -35,7 +36,7 @@ func NewPGDatabase(cfg config.PostgresConfig) (*pg, error) {
 // connect initialize database session connection instance with dsn.
 func (p *pg) connect(dsn string) error {
 	log.Info("PG DSN: ", dsn)
-	conn, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true}) //todo: use custom logger based on logrus
+	conn, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true, Logger: logger.Default.LogMode(logger.Info)}) //todo: use custom logger based on logrus
 	if err != nil {
 		return err
 	}
@@ -106,11 +107,10 @@ func (p *pg) CreateSegment(ctx context.Context, segment *model.Segment) (*model.
 // DeleteSegment hard deletes segment by slug.
 func (p *pg) DeleteSegment(ctx context.Context, segment *model.Segment) error {
 	result := p.conn.WithContext(ctx).Delete(segment, "slug = ?", segment.Slug)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return fmt.Errorf("segment with slug (%s) %w", segment.Slug, ErrNotFound)
-	}
 	if result.Error != nil {
 		return fmt.Errorf("%w: %v", ErrDB, result.Error)
+	} else if result.RowsAffected < 1 {
+		return fmt.Errorf("segment with slug (%s) is %w for delete", segment.Slug, ErrNotFound)
 	}
 	return nil
 }
@@ -128,29 +128,29 @@ func (p *pg) GetSegment(ctx context.Context, segment *model.Segment) (*model.Seg
 }
 
 // GetSegments returns segments by given slugs.
-func (p *pg) GetSegments(ctx context.Context, slugs []model.Slug) ([]model.Segment, error) {
+func (p *pg) GetSegments(ctx context.Context, slugs []model.Slug) ([]*model.Segment, error) {
 	return p.getSegments(ctx, p.conn, slugs)
 }
 
 // getSegments returns segments by given slugs.
-func (p *pg) getSegments(ctx context.Context, tx *gorm.DB, slugs []model.Slug) ([]model.Segment, error) {
-	var segments []model.Segment
+func (p *pg) getSegments(ctx context.Context, tx *gorm.DB, slugs []model.Slug) ([]*model.Segment, error) {
+	var segments []*model.Segment
 	result := tx.WithContext(ctx).Find(&segments, "slug IN ?", slugs)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("segments %w", ErrNotFound)
-	}
 	if result.Error != nil {
 		return nil, fmt.Errorf("%w: %v", ErrDB, result.Error)
+	} else if len(segments) != len(slugs) {
+		return nil, fmt.Errorf("some segments %w", ErrNotFound)
 	}
 	return segments, nil
 }
 
 // CreateDeleteUserSegments insert and delete relation by specified segments (represented by slugs) for given user.
 func (p *pg) CreateDeleteUserSegments(ctx context.Context, user *model.User, toInSegments []model.Slug, toDelSegments []model.Slug) error {
-	var insertSegments []model.Segment
-	var deleteSegments []model.Segment
+	var insertSegments []*model.Segment
+	var deleteSegments []*model.Segment
 	err := p.conn.Transaction(func(tx *gorm.DB) error { //todo: check gorm's tx errors
 		var txErr error
+
 		insertSegments, txErr = p.getSegments(ctx, tx, toInSegments)
 		if txErr != nil {
 			return txErr
@@ -161,15 +161,20 @@ func (p *pg) CreateDeleteUserSegments(ctx context.Context, user *model.User, toI
 			return txErr
 		}
 
-		txErr = p.insertUserSegments(ctx, tx, user, insertSegments)
-		if txErr != nil {
-			return txErr
+		if len(insertSegments) > 0 {
+			txErr = p.insertUserSegments(ctx, tx, user, insertSegments)
+			if txErr != nil {
+				return txErr
+			}
 		}
 
-		txErr = p.deleteUserSegments(ctx, tx, user, deleteSegments)
-		if txErr != nil {
-			return txErr
+		if len(deleteSegments) > 0 {
+			txErr = p.deleteUserSegments(ctx, tx, user, deleteSegments)
+			if txErr != nil {
+				return txErr
+			}
 		}
+
 		return nil
 	})
 
@@ -177,29 +182,27 @@ func (p *pg) CreateDeleteUserSegments(ctx context.Context, user *model.User, toI
 }
 
 // insertUserSegments connects user with given segments.
-func (p *pg) insertUserSegments(ctx context.Context, tx *gorm.DB, user *model.User, segments []model.Segment) error {
+func (p *pg) insertUserSegments(ctx context.Context, tx *gorm.DB, user *model.User, segments []*model.Segment) error {
 	log.Info(user.ID)
-	err := tx.WithContext(ctx).Model(user).Association("Segments").Append(segments)
+	err := tx.WithContext(ctx).Model(user).Omit("Segments.*").Association("Segments").Append(segments)
 	if err != nil {
-		log.Error(err)
-		return err
+		return fmt.Errorf("%w: %v", ErrDB, err)
 	}
 	return nil
 }
 
 // deleteUserSegments removes user relation to given segments.
-func (p *pg) deleteUserSegments(ctx context.Context, tx *gorm.DB, user *model.User, segments []model.Segment) error {
+func (p *pg) deleteUserSegments(ctx context.Context, tx *gorm.DB, user *model.User, segments []*model.Segment) error {
 	err := tx.WithContext(ctx).Model(user).Association("Segments").Delete(segments)
 	if err != nil {
-		log.Error(err)
-		return err
+		return fmt.Errorf("%w: %v", ErrDB, err)
 	}
 	return nil
 }
 
 // GetUserActiveSegments returns user with related segments.
 func (p *pg) GetUserActiveSegments(ctx context.Context, user *model.User) (*model.User, error) {
-	result := p.conn.WithContext(ctx).Preload("Segments").First(user, "ID = ?", user.ID)
+	result := p.conn.WithContext(ctx).Preload("Segments").First(user)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("user with ID (%d) %w", user.ID, ErrNotFound)
 	}
@@ -210,19 +213,22 @@ func (p *pg) GetUserActiveSegments(ctx context.Context, user *model.User) (*mode
 }
 
 // GetUserSegmentsHistory returns history of user's segments changes for the specified time interval.
-func (p *pg) GetUserSegmentsHistory(ctx context.Context, user *model.User, from time.Time, to time.Time) (*model.User, error) {
-	result := p.conn.WithContext(ctx).
-		Preload("Segments",
-			"created_at > ? AND created_at < ? AND (deleted_at = NULL OR (deleted_at > ? AND deleted_at < ?))",
-			from, to, from, to).
-		First(user, "ID = ?", user.ID)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("user with ID (%d) %w", user.ID, ErrNotFound)
-	}
+func (p *pg) GetUserSegmentsHistory(ctx context.Context, user *model.User, from time.Time, to time.Time) ([]model.UserSegment, error) {
+	var userSegments []model.UserSegment
+
+	result := p.conn.WithContext(ctx).Unscoped().Preload("Segment").Model(&userSegments).
+		Find(&userSegments, "user_segments.user_id = ? AND "+
+			"((user_segments.created_at >= ? AND user_segments.created_at <= ?)"+
+			"OR (user_segments.deleted_at = null "+
+			"OR (user_segments.deleted_at >= ? AND user_segments.deleted_at <= ?)))", user.ID, from, to, from, to)
 	if result.Error != nil {
+		log.Error(result)
 		return nil, fmt.Errorf("%w: %v", ErrDB, result.Error)
 	}
-	return user, nil
+
+	log.Info(userSegments)
+
+	return userSegments, nil
 }
 
 func (p *pg) getRandomUsers(ctx context.Context, count int) ([]*model.User, error) {
@@ -239,7 +245,7 @@ func (p *pg) getRandomUsers(ctx context.Context, count int) ([]*model.User, erro
 
 func (p *pg) addSegmentToUsers(ctx context.Context, segment model.Segment, users []*model.User) error {
 	for _, user := range users {
-		if err := p.insertUserSegments(ctx, p.conn, user, []model.Segment{segment}); err != nil {
+		if err := p.insertUserSegments(ctx, p.conn, user, []*model.Segment{&segment}); err != nil {
 			return err
 		}
 	}

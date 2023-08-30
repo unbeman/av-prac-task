@@ -1,21 +1,30 @@
 package model
 
-import "net/http"
+import (
+	"github.com/go-chi/chi/v5"
+	"gorm.io/gorm"
+	"net/http"
+	"strconv"
+	"time"
+)
 
 type User struct {
-	Base
-	Name     string   `json:"name"`
-	Segments Segments `json:"segments,omitempty" gorm:"many2many:user_segments;"`
+	ID        uint64    `json:"id" gorm:"primary_key"`
+	Segments  []Segment `json:"segments,omitempty" gorm:"many2many:user_segments;"`
+	CreatedAt time.Time
+	DeletedAt gorm.DeletedAt `sql:"index"`
 }
 
 type UserInput struct {
-	UserID uint `json:"user_id"`
+	UserID uint64 `json:"user_id"`
 }
 
-func (u *UserInput) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
-func (u *UserInput) Bind(r *http.Request) error {
+func (u *UserInput) FromURI(r *http.Request) error {
+	idParam := chi.URLParam(r, "user_id")
+	userID, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		return ErrInvalidUserID
+	}
+	u.UserID = userID
 	return nil
 }
