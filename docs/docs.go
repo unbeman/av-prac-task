@@ -64,7 +64,7 @@ const docTemplate = `{
         },
         "/segment/{slug}": {
             "delete": {
-                "description": "Совершает \"soft delete\" - помечает сегмент как удаленный.",
+                "description": "Совершает \"soft delete\" - помечает сегмент и его связь с пользователями как удаленный.",
                 "produces": [
                     "application/json"
                 ],
