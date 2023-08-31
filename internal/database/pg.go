@@ -253,9 +253,9 @@ func (p *pg) GetUserSegmentsHistory(ctx context.Context, user *model.User, from 
 func (p *pg) getRandomUsers(ctx context.Context, count int) ([]*model.User, error) {
 	var users []*model.User
 	result := p.conn.WithContext(ctx).
-		Find(&users).
 		Order("random()").
-		Limit(count)
+		Limit(count).
+		Find(&users)
 	if result.Error != nil {
 		return nil, result.Error
 	}
