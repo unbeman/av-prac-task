@@ -1,0 +1,224 @@
+basePath: /api/v1
+definitions:
+  github_com_unbeman_av-prac-task_internal_model.CreateSegmentInput:
+    properties:
+      selection:
+        example: 0.2
+        type: number
+      slug:
+        example: AVITO_VOICE_MESSAGES
+        type: string
+    type: object
+  github_com_unbeman_av-prac-task_internal_model.OutputError:
+    properties:
+      message:
+        example: error message
+        type: string
+    type: object
+  github_com_unbeman_av-prac-task_internal_model.UserSegmentsInput:
+    properties:
+      segments_to_add:
+        example:
+        - PROTECTED_PHONE_NUMBER
+        - VOICE_MSG
+        items:
+          type: string
+        type: array
+      segments_to_delete:
+        example:
+        - PROMO_5
+        items:
+          type: string
+        type: array
+    type: object
+info:
+  contact: {}
+  description: Avito homework.
+  title: Dynamic user segments server
+  version: "1.0"
+paths:
+  /segment:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Segment input
+        in: body
+        name: segment
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.CreateSegmentInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+      summary: Creates new segment with given slug
+  /segment/{slug}:
+    delete:
+      parameters:
+      - description: slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+      summary: Deletes segment with given slug
+  /segments/user/{user_id}:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+      summary: Get user's active segments
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User id
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: User segments input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.UserSegmentsInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+      summary: Updates user's segments
+  /segments/user/{user_id}/csv:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: From Date
+        example: '"2023-08-01"'
+        format: date
+        in: query
+        name: from
+        required: true
+        type: string
+      - description: To Date
+        example: '"2023-09-01"'
+        format: date
+        in: query
+        name: to
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+      summary: Get user's segments history link to download
+  /segments/user/history/{filename}:
+    get:
+      parameters:
+      - description: file name
+        in: path
+        name: filename
+        required: true
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
+      summary: Get user's segments history csv file
+swagger: "2.0"
