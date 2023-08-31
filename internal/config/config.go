@@ -7,7 +7,18 @@ const (
 	LogLevelDefault      = "info"
 	DSNDefault           = "postgresql://postgres:1211@localhost:5432/dus"
 	FileDirectoryDefault = "store"
+	WorkersCountDefault  = 2
+	TasksSizeDefault     = 2
 )
+
+type WorkerPoolConfig struct {
+	WorkersCount int
+	TasksSize    int
+}
+
+func NewWorkerPoolConfig() WorkerPoolConfig {
+	return WorkerPoolConfig{WorkersCount: WorkersCountDefault, TasksSize: TasksSizeDefault}
+}
 
 type LoggerConfig struct {
 	Level string `env:"LOG_LEVEL"`
@@ -37,6 +48,7 @@ type AppConfig struct {
 	Logger        LoggerConfig
 	Address       string `env:"RUN_ADDRESS"`
 	FileDirectory string `env:"FILE_DIRECTORY"`
+	WorkersPool   WorkerPoolConfig
 }
 
 func GetAppConfig() (AppConfig, error) {
@@ -45,6 +57,7 @@ func GetAppConfig() (AppConfig, error) {
 		Logger:        NewLoggerConfig(),
 		Address:       AddressDefault,
 		FileDirectory: FileDirectoryDefault,
+		WorkersPool:   NewWorkerPoolConfig(),
 	}
 
 	if err := cfg.parseEnv(); err != nil {

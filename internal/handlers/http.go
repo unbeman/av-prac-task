@@ -16,6 +16,7 @@ import (
 	"github.com/unbeman/av-prac-task/internal/database"
 	"github.com/unbeman/av-prac-task/internal/model"
 	"github.com/unbeman/av-prac-task/internal/services"
+	"github.com/unbeman/av-prac-task/internal/utils"
 )
 
 type HTTPHandler struct {
@@ -53,6 +54,9 @@ func GetHandler(userService *services.UserService, segmentService *services.Segm
 
 // CreateSegment godoc
 // @Summary Creates new segment with given slug
+// @Description Создает новый сегмент с заданным значением Slug и (опционально) Selection - процентом для выборки
+// @Description пользователей [0, 1). При непустом значении Selection, новый сегмент добавляется рандомно выбранным
+// @Description пользователям в количестве (AllUsersCount * Selection).
 // @Accept json
 // @Produce json
 // @Param segment body model.CreateSegmentInput true "Segment input"
@@ -81,6 +85,7 @@ func (h HTTPHandler) CreateSegment(writer http.ResponseWriter, request *http.Req
 
 // DeleteSegment godoc
 // @Summary Deletes segment with given slug
+// @Description Совершает "soft delete" - помечает сегмент как удаленный.
 // @Produce json
 // @Param slug path string true "slug"
 // @Success 200
@@ -108,6 +113,8 @@ func (h HTTPHandler) DeleteSegment(writer http.ResponseWriter, request *http.Req
 
 // UpdateUserSegments godoc
 // @Summary Updates user's segments
+// @Description Обновляет сегменты пользователя: добавляет и удаляет существующие по соответствующим спискам.
+// @Description Отдает ошибку в том числе, если списки пересекаются, если сегмента не существует, если сегмент уже удален.
 // @Accept json
 // @Produce json
 // @Param user_id path uint true "User id"
@@ -137,6 +144,7 @@ func (h HTTPHandler) UpdateUserSegments(writer http.ResponseWriter, request *htt
 
 // GetActiveUserSegments godoc
 // @Summary Get user's active segments
+// @Description Возвращает список активных сегментов пользователя
 // @Produce json
 // @Param user_id path uint true "User ID"
 // @Success 200 {object} model.Slugs
@@ -165,10 +173,12 @@ func (h HTTPHandler) GetActiveUserSegments(writer http.ResponseWriter, request *
 
 // GenerateUserSegmentsHistory godoc
 // @Summary Get user's segments history link to download
+// @Description Запускает генерацию CSV файла для истории операций с сегментами пользователя
+// @Description в заданный полуинтервал [from, to).
 // @Produce json
 // @Param user_id path uint true "User ID"
-// @Param from	query string true "From Date" Format(date) Example("2023-08-01")
-// @Param to	query string true "To Date" Format(date) Example("2023-09-01")
+// @Param from	query string true "From Date" Format(date) Example("2023-08")
+// @Param to	query string true "To Date" Format(date) Example("2023-09")
 // @Success 200
 // @Failure 400 {object} model.OutputError
 // @Failure 404 {object} model.OutputError
@@ -183,21 +193,23 @@ func (h HTTPHandler) GenerateUserSegmentsHistory(writer http.ResponseWriter, req
 		return
 	}
 
-	//todo: go generateHist
-	//todo: return file link to hist + status accepted
-
 	filename, err := h.userService.GenerateUserSegmentsHistoryFile(request.Context(), input)
 	if err != nil {
 		h.processError(writer, request, err)
 		return
 	}
 
-	render.Status(request, http.StatusOK)
-	render.Render(writer, request, model.UserSegmentsHistoryOutput{Link: fmt.Sprintf("%s/history/%s", request.Host, filename)})
+	//todo: return status of gen process.
+
+	render.Status(request, http.StatusAccepted)
+	render.Render(writer, request, model.UserSegmentsHistoryOutput{
+		Link: fmt.Sprintf("%s/api/v1/segments/user/history/%s", request.Host, filename),
+	})
 }
 
 // GetUserSegmentsHistoryFile godoc
 // @Summary Get user's segments history csv file
+// @Description Возвращает csv документ
 // @Produce text/csv
 // @Param filename path string true "file name"
 // @Success 200
@@ -228,7 +240,7 @@ func (h HTTPHandler) processError(w http.ResponseWriter, r *http.Request, err er
 		httpCode = http.StatusConflict
 	case errors.Is(err, database.ErrNotFound):
 		httpCode = http.StatusNotFound
-	case errors.Is(err, services.ErrFileNotFound):
+	case errors.Is(err, utils.ErrFileNotFound):
 		httpCode = http.StatusNotFound
 	default:
 		httpCode = http.StatusInternalServerError

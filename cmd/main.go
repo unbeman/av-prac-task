@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,16 +17,6 @@ import (
 // @description Avito homework.
 // @BasePath /api/v1
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	go func() {
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
-
-		<-c
-		cancel()
-	}()
-
 	cfg, err := config.GetAppConfig()
 	if err != nil {
 		log.Error("can't get config: ", err)
@@ -41,5 +30,13 @@ func main() {
 		return
 	}
 
-	sapp.Run(ctx)
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
+
+		<-c
+		sapp.Stop()
+	}()
+
+	sapp.Run()
 }

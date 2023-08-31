@@ -192,8 +192,8 @@ func (p *pg) deleteUserSegments(ctx context.Context, tx *gorm.DB, user *model.Us
 	return nil
 }
 
-// GetUserActiveSegments returns user with related segments.
-func (p *pg) GetUserActiveSegments(ctx context.Context, user *model.User) (*model.User, error) {
+// GetUserWithActiveSegments returns user with related segments.
+func (p *pg) GetUserWithActiveSegments(ctx context.Context, user *model.User) (*model.User, error) {
 	result := p.conn.WithContext(ctx).Preload("Segments").First(user)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("user with ID (%d) %w", user.ID, ErrNotFound)
@@ -210,16 +210,14 @@ func (p *pg) GetUserSegmentsHistory(ctx context.Context, user *model.User, from 
 
 	result := p.conn.WithContext(ctx).Unscoped().Preload("Segment").Model(&userSegments).
 		Find(&userSegments, "user_segments.user_id = ? AND "+
-			"((user_segments.created_at >= ? AND user_segments.created_at <= ?)"+
+			"((user_segments.created_at >= ? AND user_segments.created_at < ?)"+
 			" OR (user_segments.deleted_at = null "+
-			" OR (user_segments.deleted_at >= ? AND user_segments.deleted_at <= ?)))"+
+			" OR (user_segments.deleted_at >= ? AND user_segments.deleted_at < ?)))"+
 			" ORDER BY user_segments.created_at ASC", user.ID, from, to, from, to)
 	if result.Error != nil {
 		log.Error(result)
 		return nil, fmt.Errorf("%w: %v", ErrDB, result.Error)
 	}
-
-	log.Info(userSegments)
 
 	return userSegments, nil
 }
@@ -271,4 +269,13 @@ func (p *pg) AddSegmentToRandomUsers(ctx context.Context, segment *model.Segment
 		return err
 	}
 	return nil
+}
+
+// GetUser returns user with given user.ID.
+func (p *pg) GetUser(ctx context.Context, user *model.User) (*model.User, error) {
+	result := p.conn.WithContext(ctx).First(user)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("user with id (%d) %w", user.ID, ErrNotFound)
+	}
+	return user, nil
 }

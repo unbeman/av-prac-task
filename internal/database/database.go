@@ -16,8 +16,9 @@ type IDatabase interface {
 	GetSegment(ctx context.Context, segment *model.Segment) (*model.Segment, error)
 	GetSegments(ctx context.Context, slugs []model.Slug) ([]*model.Segment, error)
 	CreateDeleteUserSegments(ctx context.Context, user *model.User, SegSlugsForCreate []model.Slug, SegSlugsForDelete []model.Slug) error
-	GetUserActiveSegments(ctx context.Context, input *model.User) (*model.User, error)
+	GetUserWithActiveSegments(ctx context.Context, input *model.User) (*model.User, error)
 	GetUserSegmentsHistory(ctx context.Context, user *model.User, from time.Time, to time.Time) ([]model.UserSegment, error)
+	GetUser(ctx context.Context, user *model.User) (*model.User, error)
 }
 
 // GetDatabase returns IDatabase implementation.

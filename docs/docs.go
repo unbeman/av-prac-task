@@ -103,6 +103,7 @@ const docTemplate = `{
         },
         "/segments/user/history/{filename}": {
             "get": {
+                "description": "Возвращает csv документ",
                 "produces": [
                     "text/csv"
                 ],
@@ -143,6 +144,7 @@ const docTemplate = `{
         },
         "/segments/user/{user_id}": {
             "get": {
+                "description": "Возвращает список активных сегментов пользователя",
                 "produces": [
                     "application/json"
                 ],
@@ -239,6 +241,7 @@ const docTemplate = `{
         },
         "/segments/user/{user_id}/csv": {
             "get": {
+                "description": "Запускает генерацию CSV файла для истории операций с сегментами пользователя\nв заданный полуинтервал [from, to).",
                 "produces": [
                     "application/json"
                 ],
@@ -254,7 +257,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "format": "date",
-                        "example": "\"2023-08-01\"",
+                        "example": "\"2023-08\"",
                         "description": "From Date",
                         "name": "from",
                         "in": "query",
@@ -263,7 +266,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "format": "date",
-                        "example": "\"2023-09-01\"",
+                        "example": "\"2023-09\"",
                         "description": "To Date",
                         "name": "to",
                         "in": "query",

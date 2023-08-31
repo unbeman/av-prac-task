@@ -126,7 +126,7 @@ func (mr *MockIDatabaseMockRecorder) GetSegments(arg0, arg1 interface{}) *gomock
 // GetUserActiveSegments mocks base method.
 func (m *MockIDatabase) GetUserActiveSegments(arg0 context.Context, arg1 *model.User) (*model.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserActiveSegments", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetUserWithActiveSegments", arg0, arg1)
 	ret0, _ := ret[0].(*model.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
@@ -135,7 +135,7 @@ func (m *MockIDatabase) GetUserActiveSegments(arg0 context.Context, arg1 *model.
 // GetUserActiveSegments indicates an expected call of GetUserActiveSegments.
 func (mr *MockIDatabaseMockRecorder) GetUserActiveSegments(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserActiveSegments", reflect.TypeOf((*MockIDatabase)(nil).GetUserActiveSegments), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserWithActiveSegments", reflect.TypeOf((*MockIDatabase)(nil).GetUserActiveSegments), arg0, arg1)
 }
 
 // GetUserSegmentsHistory mocks base method.

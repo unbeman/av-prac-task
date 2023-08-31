@@ -4,18 +4,20 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/unbeman/av-prac-task/internal/config"
 	"github.com/unbeman/av-prac-task/internal/database"
 	"github.com/unbeman/av-prac-task/internal/handlers"
 	"github.com/unbeman/av-prac-task/internal/services"
+	"github.com/unbeman/av-prac-task/internal/worker"
 )
 
 type SegApp struct {
-	server http.Server
+	server      http.Server
+	workersPool *worker.WorkersPool
 }
 
 func GetSegApp(cfg config.AppConfig) (*SegApp, error) {
@@ -24,7 +26,9 @@ func GetSegApp(cfg config.AppConfig) (*SegApp, error) {
 		return nil, fmt.Errorf("coudnt get database: %w", err)
 	}
 
-	uServ, err := services.NewUserService(db, cfg.FileDirectory)
+	wp := worker.NewWorkersPool(cfg.WorkersPool)
+
+	uServ, err := services.NewUserService(db, wp, cfg.FileDirectory)
 	if err != nil {
 		return nil, fmt.Errorf("coudnt get user service: %w", err)
 	}
@@ -38,30 +42,46 @@ func GetSegApp(cfg config.AppConfig) (*SegApp, error) {
 	if err != nil {
 		return nil, fmt.Errorf("coudnt get handler: %w", err)
 	}
+
+	server := http.Server{
+		Addr:    cfg.Address,
+		Handler: handler,
+	}
+
 	application := &SegApp{
-		server: http.Server{
-			Addr:    cfg.Address,
-			Handler: handler,
-		},
+		server:      server,
+		workersPool: wp,
 	}
 	return application, nil
 }
 
-func (a *SegApp) Run(ctx context.Context) {
-	g, gCtx := errgroup.WithContext(ctx)
+func (a *SegApp) Run() {
+	wg := sync.WaitGroup{}
 
-	g.Go(func() error {
-		return a.server.ListenAndServe()
-	})
+	wg.Add(2)
 
-	g.Go(func() error {
-		<-gCtx.Done()
-		return a.server.Shutdown(context.Background())
-	})
+	go func() {
+		defer wg.Done()
+		a.workersPool.Run()
+		log.Info("worker pool finished")
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := a.server.ListenAndServe()
+		log.Infof("server closed: %s", err)
+	}()
 
 	log.Infof("application started, Addr: %s", a.server.Addr)
 
-	if err := g.Wait(); err != nil {
-		log.Infof("application stopped, reason: %s", err)
+	wg.Wait()
+}
+
+func (a *SegApp) Stop() {
+	log.Infof("shutting down")
+	err := a.server.Shutdown(context.TODO())
+	if err != nil {
+		log.Error(err)
 	}
+	a.workersPool.Shutdown()
 }

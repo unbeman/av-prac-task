@@ -94,6 +94,7 @@ paths:
       summary: Deletes segment with given slug
   /segments/user/{user_id}:
     get:
+      description: Возвращает список активных сегментов пользователя
       parameters:
       - description: User ID
         in: path
@@ -157,6 +158,9 @@ paths:
       summary: Updates user's segments
   /segments/user/{user_id}/csv:
     get:
+      description: |-
+        Запускает генерацию CSV файла для истории операций с сегментами пользователя
+        в заданный полуинтервал [from, to).
       parameters:
       - description: User ID
         in: path
@@ -164,14 +168,14 @@ paths:
         required: true
         type: integer
       - description: From Date
-        example: '"2023-08-01"'
+        example: '"2023-08"'
         format: date
         in: query
         name: from
         required: true
         type: string
       - description: To Date
-        example: '"2023-09-01"'
+        example: '"2023-09"'
         format: date
         in: query
         name: to
@@ -197,6 +201,7 @@ paths:
       summary: Get user's segments history link to download
   /segments/user/history/{filename}:
     get:
+      description: Возвращает csv документ
       parameters:
       - description: file name
         in: path

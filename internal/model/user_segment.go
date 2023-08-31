@@ -101,7 +101,11 @@ func (u *UserSegmentsHistoryInput) FromURI(r *http.Request) error {
 	if err != nil {
 		return ErrInvalidDateFormat
 	}
-	if !u.FromDate.Before(u.ToDate) {
+
+	tomorrow := time.Now().AddDate(0, 0, 1)
+
+	//allow to get hist for today
+	if !u.FromDate.Before(u.ToDate) || !u.ToDate.Before(tomorrow) {
 		return ErrInvalidDateInterval
 	}
 	return nil
