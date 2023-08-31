@@ -11,20 +11,24 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/unbeman/av-prac-task/internal/config"
 	"github.com/unbeman/av-prac-task/internal/database"
 	mock_database "github.com/unbeman/av-prac-task/internal/database/mock"
 	"github.com/unbeman/av-prac-task/internal/model"
 	"github.com/unbeman/av-prac-task/internal/services"
+	"github.com/unbeman/av-prac-task/internal/worker"
 )
 
 func setupHandler(t *testing.T, ctrl *gomock.Controller, setupDB func(db *mock_database.MockIDatabase)) *HTTPHandler {
 	database := mock_database.NewMockIDatabase(ctrl)
 	setupDB(database)
 
+	wp := worker.NewWorkersPool(config.NewWorkerPoolConfig())
+
 	segmentServ, err := services.NewSegmentService(database)
 	require.NoError(t, err)
 
-	userServ, err := services.NewUserService(database, t.TempDir())
+	userServ, err := services.NewUserService(database, wp, t.TempDir())
 	require.NoError(t, err)
 
 	h, err := GetHandler(userServ, segmentServ)
@@ -330,7 +334,7 @@ func TestHTTPHandlers_GetActiveUserSegments(t *testing.T) {
 			input: user,
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
-					GetUserActiveSegments(gomock.Any(), gomock.Any()). //todo: fill
+					GetUserWithActiveSegments(gomock.Any(), gomock.Any()). //todo: fill
 					Return(&user, nil)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -342,7 +346,7 @@ func TestHTTPHandlers_GetActiveUserSegments(t *testing.T) {
 			input: user,
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
-					GetUserActiveSegments(gomock.Any(), gomock.Any()). //todo: fill
+					GetUserWithActiveSegments(gomock.Any(), gomock.Any()). //todo: fill
 					Return(nil, database.ErrDB)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -354,7 +358,7 @@ func TestHTTPHandlers_GetActiveUserSegments(t *testing.T) {
 			input: user,
 			buildStubs: func(db *mock_database.MockIDatabase) {
 				db.EXPECT().
-					GetUserActiveSegments(gomock.Any(), gomock.Any()).
+					GetUserWithActiveSegments(gomock.Any(), gomock.Any()).
 					Return(nil, database.ErrNotFound)
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
