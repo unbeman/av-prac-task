@@ -1,4 +1,4 @@
-basePath: /
+basePath: /api/v1
 definitions:
   github_com_unbeman_av-prac-task_internal_model.CreateSegmentInput:
     properties:
@@ -18,10 +18,15 @@ definitions:
   github_com_unbeman_av-prac-task_internal_model.UserSegmentsInput:
     properties:
       segments_to_add:
+        example:
+        - PROTECTED_PHONE_NUMBER
+        - VOICE_MSG
         items:
           type: string
         type: array
       segments_to_delete:
+        example:
+        - PROMO_5
         items:
           type: string
         type: array
@@ -32,7 +37,7 @@ info:
   title: Dynamic user segments server
   version: "1.0"
 paths:
-  /api/v1/segment:
+  /segment:
     post:
       consumes:
       - application/json
@@ -61,10 +66,8 @@ paths:
           schema:
             $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
       summary: Creates new segment with given slug
-  /api/v1/segment/{slug}:
+  /segment/{slug}:
     delete:
-      consumes:
-      - application/json
       parameters:
       - description: slug
         in: path
@@ -89,10 +92,8 @@ paths:
           schema:
             $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
       summary: Deletes segment with given slug
-  /api/v1/segments/user/{user_id}:
+  /segments/user/{user_id}:
     get:
-      consumes:
-      - application/json
       parameters:
       - description: User ID
         in: path
@@ -154,10 +155,8 @@ paths:
           schema:
             $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
       summary: Updates user's segments
-  /api/v1/segments/user/{user_id}/csv:
+  /segments/user/{user_id}/csv:
     get:
-      consumes:
-      - application/json
       parameters:
       - description: User ID
         in: path
@@ -165,11 +164,15 @@ paths:
         required: true
         type: integer
       - description: From Date
+        example: '"2023-08-01"'
+        format: date
         in: query
         name: from
         required: true
         type: string
       - description: To Date
+        example: '"2023-09-01"'
+        format: date
         in: query
         name: to
         required: true
@@ -192,7 +195,7 @@ paths:
           schema:
             $ref: '#/definitions/github_com_unbeman_av-prac-task_internal_model.OutputError'
       summary: Get user's segments history link to download
-  /api/v1/segments/user/history/{filename}:
+  /segments/user/history/{filename}:
     get:
       parameters:
       - description: file name

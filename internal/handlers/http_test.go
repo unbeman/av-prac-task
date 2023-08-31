@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/unbeman/av-prac-task/internal/database"
 	mock_database "github.com/unbeman/av-prac-task/internal/database/mock"
@@ -16,7 +17,7 @@ import (
 	"github.com/unbeman/av-prac-task/internal/services"
 )
 
-func setupHandler(t *testing.T, ctrl *gomock.Controller, setupDB func(db *mock_database.MockIDatabase)) *HTTPHandlers {
+func setupHandler(t *testing.T, ctrl *gomock.Controller, setupDB func(db *mock_database.MockIDatabase)) *HTTPHandler {
 	database := mock_database.NewMockIDatabase(ctrl)
 	setupDB(database)
 
@@ -26,7 +27,7 @@ func setupHandler(t *testing.T, ctrl *gomock.Controller, setupDB func(db *mock_d
 	userServ, err := services.NewUserService(database, t.TempDir())
 	require.NoError(t, err)
 
-	h, err := GetHandlers(userServ, segmentServ)
+	h, err := GetHandler(userServ, segmentServ)
 	require.NoError(t, err)
 
 	return h

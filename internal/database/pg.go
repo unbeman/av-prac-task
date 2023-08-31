@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gorm.io/gorm/logger"
 	"math"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/unbeman/av-prac-task/internal/config"
 	"github.com/unbeman/av-prac-task/internal/model"
@@ -97,6 +97,7 @@ func (p *pg) CreateSegment(ctx context.Context, segment *model.Segment) (*model.
 // DeleteSegment soft deletes segment by slug.
 func (p *pg) DeleteSegment(ctx context.Context, segment *model.Segment) error {
 	result := p.conn.WithContext(ctx).Delete(segment, "slug = ?", segment.Slug)
+	log.Infof("%+v", segment)
 	if result.Error != nil {
 		return fmt.Errorf("%w: %v", ErrDB, result.Error)
 	} else if result.RowsAffected < 1 {

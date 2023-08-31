@@ -4,12 +4,13 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"net/http"
+
 	logger "github.com/chi-middleware/logrus-logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	log "github.com/sirupsen/logrus"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
-	"net/http"
 
 	_ "github.com/unbeman/av-prac-task/docs"
 	"github.com/unbeman/av-prac-task/internal/database"
@@ -17,15 +18,15 @@ import (
 	"github.com/unbeman/av-prac-task/internal/services"
 )
 
-// HTTPHandlers
-type HTTPHandlers struct {
+type HTTPHandler struct {
 	*chi.Mux
 	userService    *services.UserService
 	segmentService *services.SegmentService
 }
 
-func GetHandlers(userService *services.UserService, segmentService *services.SegmentService) (*HTTPHandlers, error) {
-	h := &HTTPHandlers{
+// GetHandler setups and returns HTTPHandler.
+func GetHandler(userService *services.UserService, segmentService *services.SegmentService) (*HTTPHandler, error) {
+	h := &HTTPHandler{
 		Mux:            chi.NewMux(),
 		userService:    userService,
 		segmentService: segmentService,
@@ -59,8 +60,8 @@ func GetHandlers(userService *services.UserService, segmentService *services.Seg
 // @Failure 400 {object} model.OutputError
 // @Failure 409 {object} model.OutputError
 // @Failure 500 {object} model.OutputError
-// @Router /api/v1/segment [post]
-func (h HTTPHandlers) CreateSegment(writer http.ResponseWriter, request *http.Request) {
+// @Router /segment [post]
+func (h HTTPHandler) CreateSegment(writer http.ResponseWriter, request *http.Request) {
 	input := &model.CreateSegmentInput{}
 	err := render.Bind(request, input)
 	if err != nil {
@@ -80,15 +81,14 @@ func (h HTTPHandlers) CreateSegment(writer http.ResponseWriter, request *http.Re
 
 // DeleteSegment godoc
 // @Summary Deletes segment with given slug
-// @Accept json
 // @Produce json
 // @Param slug path string true "slug"
 // @Success 200
 // @Failure 400 {object} model.OutputError
 // @Failure 404 {object} model.OutputError
 // @Failure 500 {object} model.OutputError
-// @Router /api/v1/segment/{slug} [delete]
-func (h HTTPHandlers) DeleteSegment(writer http.ResponseWriter, request *http.Request) {
+// @Router /segment/{slug} [delete]
+func (h HTTPHandler) DeleteSegment(writer http.ResponseWriter, request *http.Request) {
 	segment := &model.SegmentInput{}
 
 	err := segment.FromURI(request)
@@ -116,8 +116,8 @@ func (h HTTPHandlers) DeleteSegment(writer http.ResponseWriter, request *http.Re
 // @Failure 400 {object} model.OutputError
 // @Failure 404 {object} model.OutputError
 // @Failure 500 {object} model.OutputError
-// @Router /api/v1/segments/user/{user_id} [post]
-func (h HTTPHandlers) UpdateUserSegments(writer http.ResponseWriter, request *http.Request) {
+// @Router /segments/user/{user_id} [post]
+func (h HTTPHandler) UpdateUserSegments(writer http.ResponseWriter, request *http.Request) {
 	input := &model.UserSegmentsInput{}
 
 	err := render.Bind(request, input)
@@ -137,15 +137,14 @@ func (h HTTPHandlers) UpdateUserSegments(writer http.ResponseWriter, request *ht
 
 // GetActiveUserSegments godoc
 // @Summary Get user's active segments
-// @Accept json
 // @Produce json
 // @Param user_id path uint true "User ID"
 // @Success 200 {object} model.Slugs
 // @Failure 400 {object} model.OutputError
 // @Failure 404 {object} model.OutputError
 // @Failure 500 {object} model.OutputError
-// @Router /api/v1/segments/user/{user_id} [get]
-func (h HTTPHandlers) GetActiveUserSegments(writer http.ResponseWriter, request *http.Request) {
+// @Router /segments/user/{user_id} [get]
+func (h HTTPHandler) GetActiveUserSegments(writer http.ResponseWriter, request *http.Request) {
 	input := &model.UserInput{}
 
 	err := input.FromURI(request)
@@ -166,17 +165,16 @@ func (h HTTPHandlers) GetActiveUserSegments(writer http.ResponseWriter, request 
 
 // GenerateUserSegmentsHistory godoc
 // @Summary Get user's segments history link to download
-// @Accept json
 // @Produce json
 // @Param user_id path uint true "User ID"
-// @Param from	query string true "From Date"
-// @Param to	query string true "To Date"
+// @Param from	query string true "From Date" Format(date) Example("2023-08-01")
+// @Param to	query string true "To Date" Format(date) Example("2023-09-01")
 // @Success 200
 // @Failure 400 {object} model.OutputError
 // @Failure 404 {object} model.OutputError
 // @Failure 500 {object} model.OutputError
-// @Router /api/v1/segments/user/{user_id}/csv [get]
-func (h HTTPHandlers) GenerateUserSegmentsHistory(writer http.ResponseWriter, request *http.Request) {
+// @Router /segments/user/{user_id}/csv [get]
+func (h HTTPHandler) GenerateUserSegmentsHistory(writer http.ResponseWriter, request *http.Request) {
 	input := &model.UserSegmentsHistoryInput{}
 
 	err := input.FromURI(request)
@@ -206,8 +204,8 @@ func (h HTTPHandlers) GenerateUserSegmentsHistory(writer http.ResponseWriter, re
 // @Failure 400 {object} model.OutputError
 // @Failure 404 {object} model.OutputError
 // @Failure 500 {object} model.OutputError
-// @Router /api/v1/segments/user/history/{filename} [get]
-func (h HTTPHandlers) GetUserSegmentsHistoryFile(writer http.ResponseWriter, request *http.Request) {
+// @Router /segments/user/history/{filename} [get]
+func (h HTTPHandler) GetUserSegmentsHistoryFile(writer http.ResponseWriter, request *http.Request) {
 	filename := chi.URLParam(request, "filename")
 
 	log.Infof("requesting file: %s", filename)
@@ -221,7 +219,7 @@ func (h HTTPHandlers) GetUserSegmentsHistoryFile(writer http.ResponseWriter, req
 }
 
 // processError handle app errors.
-func (h HTTPHandlers) processError(w http.ResponseWriter, r *http.Request, err error) {
+func (h HTTPHandler) processError(w http.ResponseWriter, r *http.Request, err error) {
 	var httpCode int
 	switch {
 	case errors.Is(err, ErrInvalidRequest):

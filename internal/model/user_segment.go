@@ -2,13 +2,15 @@ package model
 
 import (
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/go-chi/chi/v5"
+	"gorm.io/gorm"
 )
 
+// UserSegment describes users to segments relation model.
 type UserSegment struct {
 	UserID    uint
 	User      User `gorm:"foreignKey:UserID;references:ID"`
@@ -18,12 +20,14 @@ type UserSegment struct {
 	DeletedAt gorm.DeletedAt `sql:"index"`
 }
 
+// UserSegmentsInput describes input params for updating user's segments.
 type UserSegmentsInput struct {
 	UserID           uint64 `json:"-" swaggerignore:"true"`
-	SegmentsToAdd    []Slug `json:"segments_to_add"`
-	SegmentsToDelete []Slug `json:"segments_to_delete"`
+	SegmentsToAdd    []Slug `json:"segments_to_add" example:"PROTECTED_PHONE_NUMBER,VOICE_MSG"`
+	SegmentsToDelete []Slug `json:"segments_to_delete" example:"PROMO_5"`
 }
 
+// Bind implements render.Binder interface method.
 func (u *UserSegmentsInput) Bind(r *http.Request) error {
 	idParam := chi.URLParam(r, "user_id")
 	userID, err := strconv.ParseUint(idParam, 10, 64)
@@ -69,12 +73,15 @@ func (u *UserSegmentsInput) Bind(r *http.Request) error {
 	return nil
 }
 
+// UserSegmentsHistoryInput describes input path/query params
+// for generating user's segments history.
 type UserSegmentsHistoryInput struct {
-	UserID   uint64    `json:"user_id" swaggerignore:"true"`
-	FromDate time.Time `json:"from_date"` //todo: mb use timestamp
-	ToDate   time.Time `json:"to_date"`
+	UserID   uint64
+	FromDate time.Time
+	ToDate   time.Time
 }
 
+// FromURI gets and checks input params from request.
 func (u *UserSegmentsHistoryInput) FromURI(r *http.Request) error {
 	idParam := chi.URLParam(r, "user_id")
 	userID, err := strconv.ParseUint(idParam, 10, 64)
@@ -94,13 +101,18 @@ func (u *UserSegmentsHistoryInput) FromURI(r *http.Request) error {
 	if err != nil {
 		return ErrInvalidDateFormat
 	}
+	if !u.FromDate.Before(u.ToDate) {
+		return ErrInvalidDateInterval
+	}
 	return nil
 }
 
+// UserSegmentsHistoryOutput describes json response of gen history response.
 type UserSegmentsHistoryOutput struct {
 	Link string `json:"link"`
 }
 
+// Render implements render.Render interface method.
 func (u UserSegmentsHistoryOutput) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }

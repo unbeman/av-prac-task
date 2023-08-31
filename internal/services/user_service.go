@@ -5,10 +5,11 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"strconv"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/unbeman/av-prac-task/internal/database"
 	"github.com/unbeman/av-prac-task/internal/model"

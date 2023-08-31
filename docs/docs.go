@@ -16,7 +16,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/segment": {
+        "/segment": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -61,11 +61,8 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/segment/{slug}": {
+        "/segment/{slug}": {
             "delete": {
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -104,7 +101,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/segments/user/history/{filename}": {
+        "/segments/user/history/{filename}": {
             "get": {
                 "produces": [
                     "text/csv"
@@ -144,11 +141,8 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/segments/user/{user_id}": {
+        "/segments/user/{user_id}": {
             "get": {
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -243,11 +237,8 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/segments/user/{user_id}/csv": {
+        "/segments/user/{user_id}/csv": {
             "get": {
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -262,6 +253,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "format": "date",
+                        "example": "\"2023-08-01\"",
                         "description": "From Date",
                         "name": "from",
                         "in": "query",
@@ -269,6 +262,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "format": "date",
+                        "example": "\"2023-09-01\"",
                         "description": "To Date",
                         "name": "to",
                         "in": "query",
@@ -331,13 +326,20 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "PROTECTED_PHONE_NUMBER",
+                        "VOICE_MSG"
+                    ]
                 },
                 "segments_to_delete": {
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "PROMO_5"
+                    ]
                 }
             }
         }
@@ -348,7 +350,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "",
-	BasePath:         "/",
+	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "Dynamic user segments server",
 	Description:      "Avito homework.",

@@ -3,9 +3,10 @@ package app
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-	"net/http"
 
 	"github.com/unbeman/av-prac-task/internal/config"
 	"github.com/unbeman/av-prac-task/internal/database"
@@ -33,14 +34,14 @@ func GetSegApp(cfg config.AppConfig) (*SegApp, error) {
 		return nil, fmt.Errorf("coudnt get segment service: %w", err)
 	}
 
-	handlers, err := handlers.GetHandlers(uServ, sServ)
+	handler, err := handlers.GetHandler(uServ, sServ)
 	if err != nil {
-		return nil, fmt.Errorf("coudnt get handlers: %w", err)
+		return nil, fmt.Errorf("coudnt get handler: %w", err)
 	}
 	application := &SegApp{
 		server: http.Server{
 			Addr:    cfg.Address,
-			Handler: handlers,
+			Handler: handler,
 		},
 	}
 	return application, nil
