@@ -179,7 +179,7 @@ func (h HTTPHandler) GetActiveUserSegments(writer http.ResponseWriter, request *
 // @Param user_id path uint true "User ID"
 // @Param from	query string true "From Date" Format(date) Example("2023-08-01")
 // @Param to	query string true "To Date" Format(date) Example("2023-08-31")
-// @Success 200
+// @Success 202
 // @Failure 400 {object} model.OutputError
 // @Failure 404 {object} model.OutputError
 // @Failure 500 {object} model.OutputError
