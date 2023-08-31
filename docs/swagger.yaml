@@ -41,6 +41,10 @@ paths:
     post:
       consumes:
       - application/json
+      description: |-
+        Создает новый сегмент с заданным значением Slug и (опционально) Selection - процентом для выборки
+        пользователей [0, 1). При непустом значении Selection, новый сегмент добавляется рандомно выбранным
+        пользователям в количестве (AllUsersCount * Selection).
       parameters:
       - description: Segment input
         in: body
@@ -68,6 +72,7 @@ paths:
       summary: Creates new segment with given slug
   /segment/{slug}:
     delete:
+      description: Совершает "soft delete" - помечает сегмент как удаленный.
       parameters:
       - description: slug
         in: path
@@ -126,6 +131,9 @@ paths:
     post:
       consumes:
       - application/json
+      description: |-
+        Обновляет сегменты пользователя: добавляет и удаляет существующие по соответствующим спискам.
+        Отдает ошибку в том числе, если списки пересекаются, если сегмента не существует, если сегмент уже удален.
       parameters:
       - description: User id
         in: path
@@ -168,14 +176,14 @@ paths:
         required: true
         type: integer
       - description: From Date
-        example: '"2023-08"'
+        example: '"2023-08-01"'
         format: date
         in: query
         name: from
         required: true
         type: string
       - description: To Date
-        example: '"2023-09"'
+        example: '"2023-08-31"'
         format: date
         in: query
         name: to

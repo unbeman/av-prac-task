@@ -85,7 +85,7 @@ func (h HTTPHandler) CreateSegment(writer http.ResponseWriter, request *http.Req
 
 // DeleteSegment godoc
 // @Summary Deletes segment with given slug
-// @Description Совершает "soft delete" - помечает сегмент как удаленный.
+// @Description Совершает "soft delete" - помечает сегмент и его связь с пользователями как удаленный.
 // @Produce json
 // @Param slug path string true "slug"
 // @Success 200
@@ -177,8 +177,8 @@ func (h HTTPHandler) GetActiveUserSegments(writer http.ResponseWriter, request *
 // @Description в заданный полуинтервал [from, to).
 // @Produce json
 // @Param user_id path uint true "User ID"
-// @Param from	query string true "From Date" Format(date) Example("2023-08")
-// @Param to	query string true "To Date" Format(date) Example("2023-09")
+// @Param from	query string true "From Date" Format(date) Example("2023-08-01")
+// @Param to	query string true "To Date" Format(date) Example("2023-08-31")
 // @Success 200
 // @Failure 400 {object} model.OutputError
 // @Failure 404 {object} model.OutputError

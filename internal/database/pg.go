@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"gorm.io/gorm/clause"
 	"math"
 	"time"
 
@@ -94,16 +95,42 @@ func (p *pg) CreateSegment(ctx context.Context, segment *model.Segment) (*model.
 	return p.createSegment(ctx, p.conn, segment)
 }
 
-// DeleteSegment soft deletes segment by slug.
-func (p *pg) DeleteSegment(ctx context.Context, segment *model.Segment) error {
-	result := p.conn.WithContext(ctx).Delete(segment, "slug = ?", segment.Slug)
-	log.Infof("%+v", segment)
+// deleteSegment soft deletes segment by slug.
+func (p *pg) deleteSegment(ctx context.Context, tx *gorm.DB, segment *model.Segment) error {
+	result := tx.WithContext(ctx).Clauses(clause.Returning{}).Delete(segment, "slug = ?", segment.Slug)
 	if result.Error != nil {
 		return fmt.Errorf("%w: %v", ErrDB, result.Error)
 	} else if result.RowsAffected < 1 {
 		return fmt.Errorf("segment with slug (%s) is %w for delete", segment.Slug, ErrNotFound)
 	}
 	return nil
+}
+
+// deleteSegment soft deletes user segment relation by segment id.
+func (p *pg) deleteSegmentFromUsers(ctx context.Context, tx *gorm.DB, segment *model.Segment) error {
+	result := tx.WithContext(ctx).Delete(&model.UserSegment{}, "segment_id = ?", segment.ID)
+	if result.Error != nil {
+		return fmt.Errorf("%w: %v", ErrDB, result.Error)
+	}
+	return nil
+}
+
+// DeleteSegment soft deletes segment by slug from its table and user_segments.
+func (p *pg) DeleteSegment(ctx context.Context, segment *model.Segment) error {
+	err := p.conn.Transaction(func(tx *gorm.DB) error {
+		err := p.deleteSegment(ctx, tx, segment)
+		if err != nil {
+			return err
+		}
+
+		err = p.deleteSegmentFromUsers(ctx, tx, segment)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
+	return err
 }
 
 // GetSegment returns segment with all users in it.

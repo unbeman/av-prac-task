@@ -18,6 +18,7 @@ const docTemplate = `{
     "paths": {
         "/segment": {
             "post": {
+                "description": "Создает новый сегмент с заданным значением Slug и (опционально) Selection - процентом для выборки\nпользователей [0, 1). При непустом значении Selection, новый сегмент добавляется рандомно выбранным\nпользователям в количестве (AllUsersCount * Selection).",
                 "consumes": [
                     "application/json"
                 ],
@@ -63,6 +64,7 @@ const docTemplate = `{
         },
         "/segment/{slug}": {
             "delete": {
+                "description": "Совершает \"soft delete\" - помечает сегмент как удаленный.",
                 "produces": [
                     "application/json"
                 ],
@@ -189,6 +191,7 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "description": "Обновляет сегменты пользователя: добавляет и удаляет существующие по соответствующим спискам.\nОтдает ошибку в том числе, если списки пересекаются, если сегмента не существует, если сегмент уже удален.",
                 "consumes": [
                     "application/json"
                 ],
@@ -257,7 +260,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "format": "date",
-                        "example": "\"2023-08\"",
+                        "example": "\"2023-08-01\"",
                         "description": "From Date",
                         "name": "from",
                         "in": "query",
@@ -266,7 +269,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "format": "date",
-                        "example": "\"2023-09\"",
+                        "example": "\"2023-08-31\"",
                         "description": "To Date",
                         "name": "to",
                         "in": "query",
