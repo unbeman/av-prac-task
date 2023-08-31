@@ -37,13 +37,13 @@ func (u *UserSegmentsInput) Bind(r *http.Request) error {
 
 	u.UserID = userID
 
-	for _, s := range u.SegmentsToAdd {
-		if err := s.Bind(r); err != nil {
+	for idx, _ := range u.SegmentsToAdd {
+		if err := u.SegmentsToAdd[idx].Bind(r); err != nil {
 			return err
 		}
 	}
-	for _, s := range u.SegmentsToDelete {
-		if err := s.Bind(r); err != nil {
+	for idx, _ := range u.SegmentsToDelete {
+		if err := u.SegmentsToDelete[idx].Bind(r); err != nil {
 			return err
 		}
 	}
